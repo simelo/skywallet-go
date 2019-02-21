@@ -15,6 +15,11 @@ before_install:
   - go install github.com/simelo/skycoin-hardware-wallet-go/vendor/github.com/gogo/protobuf/proto
   - go install github.com/simelo/skycoin-hardware-wallet-go/vendor/github.com/gogo/protobuf/jsonpb
   - go install github.com/simelo/skycoin-hardware-wallet-go/vendor/github.com/gogo/protobuf/gogoproto
+  - curl -OL https://github.com/google/protobuf/releases/download/$PROTOC_VERSION/$PROTOC_ZIP
+  - sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+  - rm -f $PROTOC_ZIP
+  - git clone --branch v1.2.0 --depth 1 https://github.com/gogo/protobuf $GOPATH/src/github.com/gogo/protobuf
+  - ( cd $GOPATH/src/github.com/gogo/protobuf/protoc-gen-gogo && go install )
 install:
   - make proto
   - go get github.com/skycoin/hardware-wallet-go
