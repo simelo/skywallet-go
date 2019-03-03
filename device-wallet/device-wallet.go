@@ -154,7 +154,11 @@ func DeviceCheckMessageSignature(deviceType DeviceType, message string, signatur
 		log.Print(err.Error())
 		return msg.Kind, msg.Data
 	}
-	log.Printf("Success %d! address that issued the signature is: %s\n", msg.Kind, msg.Data)
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		log.Printf("Success %d! address that issued the signature is: %s\n", msg.Kind, msg.Data)
+	} else {
+		log.Printf("Failed %d! unable to check msg signature: %s\n", msg.Kind, msg.Data)
+	}
 	return msg.Kind, msg.Data
 }
 
