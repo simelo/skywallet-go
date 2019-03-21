@@ -5,52 +5,114 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 
 	messages "github.com/skycoin/hardware-wallet-go/src/device-wallet/messages/go"
 	"github.com/skycoin/hardware-wallet-go/src/device-wallet/usb"
 	"github.com/skycoin/hardware-wallet-go/src/device-wallet/wire"
-
-	"io"
-	"net"
-	"time"
 )
 
-// deviceConnected checks if a device is connected
-func deviceConnected(deviceType DeviceType) bool {
-	dev, err := getDevice(deviceType)
-	if dev == nil {
-		return false
-	}
-	defer dev.Close()
-	if err != nil {
-		return false
-	}
+// DeviceType type of device: emulator or usb
+type DeviceType int32
 
-	chunks, err := MessageConnected()
-	if err != nil {
-		log.Error(err)
-		return false
+func (dt DeviceType) String() string {
+	switch dt {
+	case DeviceTypeEmulator:
+		return "EMULATOR"
+	case DeviceTypeUSB:
+		return "USB"
+	default:
+		return "Invalid"
 	}
-	for _, element := range chunks {
-		_, err = dev.Write(element[:])
-		if err != nil {
-			return false
-		}
-	}
-	var msg wire.Message
-	_, err = msg.ReadFrom(dev)
-	if err != nil {
-		return false
-	}
-	return msg.Kind == uint16(messages.MessageType_MessageType_Success)
 }
 
+const (
+	// DeviceTypeEmulator use emulator
+	DeviceTypeEmulator DeviceType = iota + 1
+	// DeviceTypeUSB use usb
+	DeviceTypeUSB
+	// DeviceTypeInvalid not valid value
+	DeviceTypeInvalid
+)
+
+//go:generate mockery -name DeviceDriver -case underscore -inpkg -testonly
+
+// DeviceDriver is the api for hardware wallet communication
+type DeviceDriver interface {
+	SendToDevice(dev io.ReadWriteCloser, chunks [][64]byte) (wire.Message, error)
+	SendToDeviceNoAnswer(dev io.ReadWriteCloser, chunks [][64]byte) error
+	GetDevice() (io.ReadWriteCloser, error)
+	DeviceType() DeviceType
+}
+
+// Driver represents a particular device (USB / Emulator)
+type Driver struct {
+	deviceType DeviceType
+}
+
+// DeviceType return driver device type
+func (drv *Driver) DeviceType() DeviceType {
+	return drv.deviceType
+}
+
+// SendToDeviceNoAnswer sends msg to device and doesnt return response
+func (drv *Driver) SendToDeviceNoAnswer(dev io.ReadWriteCloser, chunks [][64]byte) error {
+	return sendToDeviceNoAnswer(dev, chunks)
+}
+
+// SendToDevice sends msg to device and returns response
+func (drv *Driver) SendToDevice(dev io.ReadWriteCloser, chunks [][64]byte) (wire.Message, error) {
+	return sendToDevice(dev, chunks)
+}
+
+// GetDevice returns a device instance
+func (drv *Driver) GetDevice() (io.ReadWriteCloser, error) {
+	var dev io.ReadWriteCloser
+	var err error
+	switch drv.DeviceType() {
+	case DeviceTypeEmulator:
+		dev, err = getEmulatorDevice()
+	case DeviceTypeUSB:
+		dev, err = getUsbDevice()
+	}
+	if dev == nil && err == nil {
+		err = errors.New("No device connected")
+	}
+	return dev, err
+}
+
+func sendToDeviceNoAnswer(dev io.ReadWriteCloser, chunks [][64]byte) error {
+	for _, element := range chunks {
+		_, err := dev.Write(element[:])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sendToDevice(dev io.ReadWriteCloser, chunks [][64]byte) (wire.Message, error) {
+	var msg wire.Message
+	for _, element := range chunks {
+		_, err := dev.Write(element[:])
+		if err != nil {
+			return msg, err
+		}
+	}
+	_, err := msg.ReadFrom(dev)
+	return msg, err
+}
+
+// getEmulatorDevice returns a emulator device connection instance
 func getEmulatorDevice() (net.Conn, error) {
 	return net.Dial("udp", "127.0.0.1:21324")
 }
 
+// getUsbDevice returns a usb device connection instance
 func getUsbDevice() (usb.Device, error) {
 	w, err := usb.InitWebUSB()
 	if err != nil {
@@ -83,28 +145,6 @@ func getUsbDevice() (usb.Device, error) {
 	return nil, err
 }
 
-func sendToDeviceNoAnswer(dev io.ReadWriteCloser, chunks [][64]byte) error {
-	for _, element := range chunks {
-		_, err := dev.Write(element[:])
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func sendToDevice(dev io.ReadWriteCloser, chunks [][64]byte) (wire.Message, error) {
-	var msg wire.Message
-	for _, element := range chunks {
-		_, err := dev.Write(element[:])
-		if err != nil {
-			return msg, err
-		}
-	}
-	_, err := msg.ReadFrom(dev)
-	return msg, err
-}
-
 func binaryWrite(message io.Writer, data interface{}) {
 	err := binary.Write(message, binary.BigEndian, data)
 	if err != nil {
@@ -112,7 +152,7 @@ func binaryWrite(message io.Writer, data interface{}) {
 	}
 }
 
-func makeTrezorMessage(data []byte, msgID messages.MessageType) [][64]byte {
+func makeSkyWalletMessage(data []byte, msgID messages.MessageType) [][64]byte {
 	message := new(bytes.Buffer)
 	binaryWrite(message, []byte("##"))
 	binaryWrite(message, uint16(msgID))
@@ -136,21 +176,6 @@ func makeTrezorMessage(data []byte, msgID messages.MessageType) [][64]byte {
 	return chunks
 }
 
-func getDevice(deviceType DeviceType) (io.ReadWriteCloser, error) {
-	var dev io.ReadWriteCloser
-	var err error
-	switch deviceType {
-	case DeviceTypeEmulator:
-		dev, err = getEmulatorDevice()
-	case DeviceTypeUSB:
-		dev, err = getUsbDevice()
-	}
-	if dev == nil && err == nil {
-		err = errors.New("No device connected")
-	}
-	return dev, err
-}
-
 // Initialize send an init request to the device
 func initialize(dev io.ReadWriteCloser) error {
 	var chunks [][64]byte
@@ -161,12 +186,13 @@ func initialize(dev io.ReadWriteCloser) error {
 		return err
 	}
 
-	chunks = makeTrezorMessage(data, messages.MessageType_MessageType_Initialize)
+	chunks = makeSkyWalletMessage(data, messages.MessageType_MessageType_Initialize)
 	_, err = sendToDevice(dev, chunks)
 
 	return err
 }
 
+// DecodeSuccessOrFailMsg parses a success or failure msg
 func DecodeSuccessOrFailMsg(msg wire.Message) (string, error) {
 	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
 		return DecodeSuccessMsg(msg)

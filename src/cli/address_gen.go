@@ -3,12 +3,12 @@ package cli
 import (
 	"fmt"
 
+	messages "github.com/skycoin/hardware-wallet-go/src/device-wallet/messages/go"
 	"github.com/skycoin/hardware-wallet-go/src/device-wallet/wire"
 
 	gcli "github.com/urfave/cli"
 
 	deviceWallet "github.com/skycoin/hardware-wallet-go/src/device-wallet"
-	messages "github.com/skycoin/hardware-wallet-go/src/device-wallet/messages/go"
 )
 
 func addressGenCmd() gcli.Command {
@@ -44,14 +44,8 @@ func addressGenCmd() gcli.Command {
 			startIndex := c.Int("startIndex")
 			confirmAddress := c.Bool("confirmAddress")
 
-			var device *deviceWallet.Device
-			switch c.String("deviceType") {
-			case "USB":
-				device = deviceWallet.NewUSBDevice()
-			case "EMULATOR":
-				device = deviceWallet.NewEmulatorDevice()
-			default:
-				log.Error("device type not set")
+			device := deviceWallet.NewDevice(deviceWallet.DeviceTypeFromString(c.String("deviceType")))
+			if device == nil {
 				return
 			}
 
