@@ -115,6 +115,8 @@ func TestDevice(t *testing.T) {
 	message := "Hello World!"
 	msg, err = device.SignMessage(1, message)
 	require.NoError(t, err)
+	msg, err = device.ButtonAck()
+	require.NoError(t, err)
 	signature, err := deviceWallet.DecodeResponseSkycoinSignMessage(msg)
 	require.NoError(t, err)
 	log.Print(signature)
