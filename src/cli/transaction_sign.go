@@ -50,6 +50,10 @@ func transactionSignCmd() gcli.Command {
 				Usage:  "Device type to send instructions to, hardware wallet (USB) or emulator.",
 				EnvVar: "DEVICE_TYPE",
 			},
+			gcli.BoolFlag{
+				Name:	"passphrase",
+				Usage:	"Indicate if passphrase is used on signing process. If the hardware-wallet not set passphrase then this flag is ignored.",
+			},
 		},
 		OnUsageError: onCommandUsageError(name),
 		Action: func(c *gcli.Context) {
@@ -59,6 +63,7 @@ func transactionSignCmd() gcli.Command {
 			coins := c.Int64Slice("coin")
 			hours := c.Int64Slice("hour")
 			addressIndex := c.IntSlice("addressIndex")
+			withPassphrase := c.Bool("passphrase")
 
 			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
 			if device == nil {
@@ -102,7 +107,7 @@ func transactionSignCmd() gcli.Command {
 				transactionOutputs = append(transactionOutputs, &transactionOutput)
 			}
 
-			msg, err := device.TransactionSign(transactionInputs, transactionOutputs)
+			msg, err := device.TransactionSign(transactionInputs, transactionOutputs,withPassphrase)
 			if err != nil {
 				log.Error(err)
 				return

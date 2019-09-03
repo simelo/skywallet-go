@@ -774,13 +774,13 @@ func (d *Device) SignMessage(addressIndex int, message string) (wire.Message, er
 }
 
 // TransactionSign Ask the device to sign a transaction using the given information.
-func (d *Device) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput) (wire.Message, error) {
+func (d *Device) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, usePassphrase bool) (wire.Message, error) {
 	if err := d.Connect(); err != nil {
 		return wire.Message{}, err
 	}
 	defer d.Disconnect()
 
-	transactionSignChunks, err := MessageTransactionSign(inputs, outputs)
+	transactionSignChunks, err := MessageTransactionSign(inputs, outputs,&usePassphrase)
 	if err != nil {
 		return wire.Message{}, err
 	}

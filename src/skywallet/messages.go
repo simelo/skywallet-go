@@ -286,12 +286,13 @@ func MessageSignMessage(addressIndex int, message string) ([][64]byte, error) {
 }
 
 // MessageTransactionSign prepare MessageTransactionSign request
-func MessageTransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput) ([][64]byte, error) {
+func MessageTransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, usePassphrase *bool) ([][64]byte, error) {
 	skycoinTransactionSignMessage := &messages.TransactionSign{
 		NbIn:           proto.Uint32(uint32(len(inputs))),
 		NbOut:          proto.Uint32(uint32(len(outputs))),
 		TransactionIn:  inputs,
 		TransactionOut: outputs,
+		UsePassphrase: usePassphrase,
 	}
 	log.Println(skycoinTransactionSignMessage)
 
