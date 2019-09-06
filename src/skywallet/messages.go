@@ -292,7 +292,7 @@ func MessageTransactionSign(inputs []*messages.SkycoinTransactionInput, outputs 
 		NbOut:          proto.Uint32(uint32(len(outputs))),
 		TransactionIn:  inputs,
 		TransactionOut: outputs,
-		UsePassphrase: usePassphrase,
+		UsePassphrase:  usePassphrase,
 	}
 	log.Println(skycoinTransactionSignMessage)
 

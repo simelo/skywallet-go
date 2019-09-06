@@ -780,7 +780,7 @@ func (d *Device) TransactionSign(inputs []*messages.SkycoinTransactionInput, out
 	}
 	defer d.Disconnect()
 
-	transactionSignChunks, err := MessageTransactionSign(inputs, outputs,&usePassphrase)
+	transactionSignChunks, err := MessageTransactionSign(inputs, outputs, &usePassphrase)
 	if err != nil {
 		return wire.Message{}, err
 	}
