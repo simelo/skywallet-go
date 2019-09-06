@@ -346,7 +346,7 @@ func (suite *devicerSuit) TestTransactionSign() {
 	device := getMockDevice(driverMock)
 
 	// NOTE(denisacostaq@gmail.com): When
-	msg, err := device.TransactionSign(nil, nil)
+	msg, err := device.TransactionSign(nil, nil, true)
 
 	// NOTE(denisacostaq@gmail.com): Assert
 	suite.Nil(err)
