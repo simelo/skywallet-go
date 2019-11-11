@@ -7,7 +7,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/skycoin/skycoin/src/cipher"
 
-	messages "github.com/fibercrypto/skywallet-go/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 )
 
 // MessageCancel prepare Cancel request

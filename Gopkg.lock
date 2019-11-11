@@ -92,7 +92,7 @@
 [[projects]]
   branch = "master"
   digest = "1:cd1786ad73e67b4cdcdc04f6db42c4ca984c62aa4200866ec3e27595453c4aa1"
-  name = "github.com/skycoin/hardware-wallet-go"
+  name = "github.com/fibercrypto/skywallet-go"
   packages = [
     "src/cli",
     "src/skywallet",
@@ -190,12 +190,12 @@
   analyzer-version = 1
   input-imports = [
     "github.com/gogo/protobuf/proto",
-    "github.com/skycoin/hardware-wallet-go/src/cli",
-    "github.com/skycoin/hardware-wallet-go/src/skywallet",
-    "github.com/skycoin/hardware-wallet-go/src/skywallet/usb",
-    "github.com/skycoin/hardware-wallet-go/src/skywallet/wire",
-    "github.com/skycoin/hardware-wallet-go/src/usb/lowlevel/hidapi",
-    "github.com/skycoin/hardware-wallet-go/src/usb/lowlevel/libusb",
+    "github.com/fibercrypto/skywallet-go/src/cli",
+    "github.com/fibercrypto/skywallet-go/src/skywallet",
+    "github.com/fibercrypto/skywallet-go/src/skywallet/usb",
+    "github.com/fibercrypto/skywallet-go/src/skywallet/wire",
+    "github.com/fibercrypto/skywallet-go/src/usb/lowlevel/hidapi",
+    "github.com/fibercrypto/skywallet-go/src/usb/lowlevel/libusb",
     "github.com/skycoin/skycoin/src/cipher",
     "github.com/skycoin/skycoin/src/util/logging",
     "github.com/stretchr/testify/mock",

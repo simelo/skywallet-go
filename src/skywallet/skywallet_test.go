@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	messages "github.com/fibercrypto/skywallet-go/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
-	"github.com/skycoin/hardware-wallet-go/src/skywallet/wire"
+	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 
 	"github.com/stretchr/testify/require"
 

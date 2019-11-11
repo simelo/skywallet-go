@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skycoin/hardware-wallet-go/src/skywallet/usb"
+	"github.com/fibercrypto/skywallet-go/src/skywallet/usb"
 
 	"github.com/skycoin/skycoin/src/util/logging"
 
-	messages "github.com/fibercrypto/skywallet-go/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
-	"github.com/skycoin/hardware-wallet-go/src/skywallet/wire"
+	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 )
 
 var (
