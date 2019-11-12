@@ -180,9 +180,11 @@ $ skycoin-hw-cli addressGen [number of addresses] [start index]
 
 ```
 OPTIONS:
-        --addressN value            Number of addresses to generate (default: 1)
-        --startIndex value          Start to genereate deterministic addresses from startIndex (default: 0)
-        --confirmAddress            If requesting one address it will be sent only if user confirms operation by pressing device's button.
+        --addressN value    Number of addresses to generate. Assume 1 if not set. (default: 1)
+        --startIndex value  Index where deterministic key generation will start from. Assume 0 if not set. (default: 0)
+        --confirmAddress    If requesting one address it will be sent only if user confirms operation by pressing device's button.
+        --deviceType value  Device type to send instructions to, hardware wallet (USB) or emulator. [$DEVICE_TYPE]
+        --walletType value  Wallet type. Types are "deterministic" or "bip44"
 ```
 
 #### Examples
@@ -302,8 +304,10 @@ $ skycoin-hw-cli signMessage [address index] [message to sign]
 
 ```
 OPTIONS:
-        --addressN value            Index of the address that will issue the signature. (default: 0)
-        --message value             The message that the signature claims to be signing.
+        --addressIndex value  Index of the address that will issue the signature. Assume 0 if not set. (default: 0)
+        --message value       The message that the signature claims to be signing.
+        --deviceType value    Device type to send instructions to, hardware wallet (USB) or emulator. [$DEVICE_TYPE]
+        --walletType value    Wallet type. Types are "deterministic" or "bip44"
 ```
 
 #### Examples
@@ -534,12 +538,14 @@ Ask the device to sign a message using the secret key at given index.
 
 ```
 OPTIONS:
-        --inputHash value                   Hash of the Input of the transaction we expect the device to sign
-        --inputIndex value                  Index of the input in the wallet
-        --outputAddress string              Addresses of the output for the transaction
-        --coin value                        Amount of coins
-        --hour value                        Number of hours
-        --addressIndex value                If the address is a return address tell its index in the wallet
+        --inputHash value      Hash of the Input of the transaction we expect the device to sign
+        --inputIndex value     Index of the input in the wallet
+        --outputAddress value  Addresses of the output for the transaction
+        --coin value           Amount of coins
+        --hour value           Number of hours
+        --addressIndex value   If the address is a return address tell its index in the wallet
+        --deviceType value     Device type to send instructions to, hardware wallet (USB) or emulator. [$DEVICE_TYPE]
+        --walletType value     Wallet type. Types are "deterministic" or "bip44"
 ```
 
 ```bash
