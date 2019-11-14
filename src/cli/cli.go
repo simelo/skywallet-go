@@ -8,6 +8,7 @@ import (
 
 	"github.com/skycoin/skycoin/src/util/logging"
 	gcli "github.com/urfave/cli"
+	_ "github.com/russross/blackfriday"
 )
 
 const (
