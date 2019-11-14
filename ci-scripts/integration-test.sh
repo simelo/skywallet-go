@@ -4,6 +4,7 @@
 SCRIPT=`basename ${BASH_SOURCE[0]}`
 
 MODE="emulator"
+WALLET_TYPE="deterministic"
 TIMEOUT="60m"
 # run go test with -v flag
 VERBOSE=""
@@ -25,7 +26,7 @@ usage () {
   exit 1
 }
 
-while getopts "h?m:r:n:vfa" args; do
+while getopts "h?m:r:n:vfaw" args; do
 case $args in
     h|\?)
         usage;
@@ -36,13 +37,14 @@ case $args in
     v ) VERBOSE="-v";;
     f ) FAILFAST="-failfast";;
     a ) AUTO_PRESS_BUTTONS="1";;
+    w ) WALLET_TYPE=${OPTARG};;
   esac
 done
 
 
 set +e
 
-HW_GO_INTEGRATION_TESTS=1 HW_GO_INTEGRATION_TEST_MODE=$MODE AUTO_PRESS_BUTTONS=$AUTO_PRESS_BUTTONS \
+HW_GO_INTEGRATION_TESTS=1 HW_GO_INTEGRATION_TEST_MODE=$MODE HW_GO_INTEGRATION_TEST_WALLET_TYPE=$WALLET_TYPE AUTO_PRESS_BUTTONS=$AUTO_PRESS_BUTTONS \
     go test -count=1 ./src/cli/integration/... $FAILFAST -timeout=$TIMEOUT $VERBOSE $RUN_TESTS
 
 TEST_FAIL=$?
