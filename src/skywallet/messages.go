@@ -91,7 +91,7 @@ func MessageAddressGen(addressN, startIndex uint32, confirmAddress bool) ([][64]
 	return chunks, nil
 }
 
-// MessageAddressGen prepare MessageAddressGen request
+// MessageAddressGenBip44 prepare MessageAddressGen request
 func MessageAddressGenBip44(addressN, startIndex, coinType, account uint32, confirmAddress bool) ([][64]byte, error) {
 	skycoinAddress := &messages.SkycoinAddress{
 		ConfirmAddress: proto.Bool(confirmAddress),
