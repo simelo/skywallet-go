@@ -36,7 +36,6 @@ const (
 )
 
 func execCommand(args ...string) *exec.Cmd {
-	args = append(args)
 	cmd := exec.Command(binaryPath, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "AUTO_PRESS_BUTTONS="+autopressButtons())
@@ -106,7 +105,7 @@ func TestMain(m *testing.M) {
 	// Build cli binary file.
 	args := []string{"build", "-ldflags", "-X main.AUTO_PRESS_BUTTONS=true", "-o", binaryPath, "../../../cmd/cli/cli.go"}
 	if err := exec.Command("go", args...).Run(); err != nil {
-		fmt.Fprintf(os.Stderr, fmt.Sprintf("Make %v binary failed: %v\n", binaryName, err))
+		fmt.Fprint(os.Stderr, fmt.Sprintf("Make %v binary failed: %v\n", binaryName, err))
 		os.Exit(1)
 	}
 
