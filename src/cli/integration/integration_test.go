@@ -15,8 +15,8 @@ import (
 
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 
-	"github.com/gogo/protobuf/proto"
 	messages "github.com/fibercrypto/skywallet-protob/go"
+	"github.com/gogo/protobuf/proto"
 	"github.com/skycoin/skycoin/src/util/logging"
 	"github.com/stretchr/testify/require"
 )
