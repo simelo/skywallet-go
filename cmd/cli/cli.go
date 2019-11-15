@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/fibercrypto/skywallet-go/src/cli"
-	_ "github.com/russross/blackfriday"
 )
 
 func main() {

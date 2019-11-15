@@ -169,7 +169,6 @@
   input-imports = [
     "github.com/fibercrypto/skywallet-protob/go",
     "github.com/gogo/protobuf/proto",
-    "github.com/russross/blackfriday",
     "github.com/skycoin/skycoin/src/cipher",
     "github.com/skycoin/skycoin/src/util/logging",
     "github.com/stretchr/testify/mock",
