@@ -3,7 +3,7 @@ package cli
 import (
 	gcli "github.com/urfave/cli"
 
-	skyWallet "github.com/skycoin/hardware-wallet-go/src/skywallet"
+	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func getMixedEntropyCmd() gcli.Command {

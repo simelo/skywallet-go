@@ -7,9 +7,9 @@ import (
 
 	gcli "github.com/urfave/cli"
 
-	messages "github.com/skycoin/hardware-wallet-protob/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
-	skyWallet "github.com/skycoin/hardware-wallet-go/src/skywallet"
+	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func signMessageCmd() gcli.Command {
@@ -20,7 +20,7 @@ func signMessageCmd() gcli.Command {
 		Description: "",
 		Flags: []gcli.Flag{
 			gcli.IntFlag{
-				Name:  "addressN",
+				Name:  "addressIndex",
 				Value: 0,
 				Usage: "Index of the address that will issue the signature. Assume 0 if not set.",
 			},
@@ -32,6 +32,10 @@ func signMessageCmd() gcli.Command {
 				Name:   "deviceType",
 				Usage:  "Device type to send instructions to, hardware wallet (USB) or emulator.",
 				EnvVar: "DEVICE_TYPE",
+			},
+			gcli.StringFlag{
+				Name:  "walletType",
+				Usage: "Wallet type. Types are \"deterministic\" or \"bip44\"",
 			},
 		},
 		OnUsageError: onCommandUsageError(name),
@@ -50,11 +54,12 @@ func signMessageCmd() gcli.Command {
 				}
 			}
 
-			addressN := c.Int("addressN")
+			addressIndex := c.Int("addressIndex")
 			message := c.String("message")
+			walletType := c.String("walletType")
 			var signature string
 
-			msg, err := device.SignMessage(addressN, message)
+			msg, err := device.SignMessage(1, addressIndex, message, walletType)
 			if err != nil {
 				log.Error(err)
 				return

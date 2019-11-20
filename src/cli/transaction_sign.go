@@ -9,9 +9,9 @@ import (
 
 	gcli "github.com/urfave/cli"
 
-	messages "github.com/skycoin/hardware-wallet-protob/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
-	skyWallet "github.com/skycoin/hardware-wallet-go/src/skywallet"
+	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func transactionSignCmd() gcli.Command {
@@ -50,6 +50,11 @@ func transactionSignCmd() gcli.Command {
 				Usage:  "Device type to send instructions to, hardware wallet (USB) or emulator.",
 				EnvVar: "DEVICE_TYPE",
 			},
+			gcli.StringFlag{
+				Name:     "walletType",
+				Usage:    "Wallet type. Types are \"deterministic\" or \"bip44\"",
+				Required: true,
+			},
 		},
 		OnUsageError: onCommandUsageError(name),
 		Action: func(c *gcli.Context) {
@@ -59,6 +64,7 @@ func transactionSignCmd() gcli.Command {
 			coins := c.Int64Slice("coin")
 			hours := c.Int64Slice("hour")
 			addressIndex := c.IntSlice("addressIndex")
+			walletType := c.String("walletType")
 
 			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
 			if device == nil {
@@ -102,7 +108,7 @@ func transactionSignCmd() gcli.Command {
 				transactionOutputs = append(transactionOutputs, &transactionOutput)
 			}
 
-			msg, err := device.TransactionSign(transactionInputs, transactionOutputs)
+			msg, err := device.TransactionSign(transactionInputs, transactionOutputs, walletType)
 			if err != nil {
 				log.Error(err)
 				return

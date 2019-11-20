@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	messages "github.com/skycoin/hardware-wallet-protob/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
-	"github.com/skycoin/hardware-wallet-go/src/skywallet/wire"
+	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 
 	"github.com/stretchr/testify/require"
 
@@ -71,7 +71,7 @@ func (suite *devicerSuit) TestAddressGen() {
 	}
 
 	for _, tc := range tt {
-		msg, err := device.AddressGen(tc.addressN, tc.startIndex, false)
+		msg, err := device.AddressGen(tc.addressN, tc.startIndex, false, WalletTypeDeterministic)
 		suite.Equal(err, tc.err)
 		suite.Equal(msg.Kind, tc.msgKind)
 	}
@@ -340,7 +340,7 @@ func (suite *devicerSuit) TestTransactionSign() {
 	device := getMockDevice(driverMock)
 
 	// NOTE(denisacostaq@gmail.com): When
-	msg, err := device.TransactionSign(nil, nil)
+	msg, err := device.TransactionSign(nil, nil, WalletTypeDeterministic)
 
 	// NOTE(denisacostaq@gmail.com): Assert
 	suite.Nil(err)

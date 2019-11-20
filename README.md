@@ -33,7 +33,7 @@ https://github.com/golang/go/wiki/Ubuntu
 ### Download source code
 
 ```bash
-$ go get github.com/skycoin/hardware-wallet-go
+$ go get github.com/fibercrypto/skywallet-go
 ```
 
 ### Dependancies management
@@ -54,7 +54,7 @@ $ make dep
 $ go run cmd/cli/cli.go
 ```
 
-See also [CLI README](https://github.com/skycoin/hardware-wallet-go/blob/master/cmd/cli/README.md) for information about the Command Line Interface.
+See also [CLI README](https://github.com/fibercrypto/skywallet-go/blob/master/cmd/cli/README.md) for information about the Command Line Interface.
 
 # Development guidelines
 
@@ -313,4 +313,4 @@ skycoin-cli walletBalance $WALLET2.wlt
 
 ## Wiki
 
-More information in [the wiki](https://github.com/skycoin/hardware-wallet-go/wiki)
+More information in [the wiki](https://github.com/fibercrypto/skywallet-go/wiki)

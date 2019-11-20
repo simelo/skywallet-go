@@ -34,9 +34,9 @@
   branch = "develop"
 
 [[constraint]]
-  name = "github.com/skycoin/hardware-wallet-protob"
-  revision = "bd9f95c53447f97ac56f24a415c25d04680552de"
-
-[[constraint]]
   name = "github.com/gogo/protobuf"
   version = "1.2.1"
+
+[[constraint]]
+  branch = "develop"
+  name = "github.com/fibercrypto/skywallet-protob"

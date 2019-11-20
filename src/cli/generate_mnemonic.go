@@ -5,11 +5,11 @@ import (
 	"os"
 	"runtime"
 
-	messages "github.com/skycoin/hardware-wallet-protob/go"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 
 	gcli "github.com/urfave/cli"
 
-	skyWallet "github.com/skycoin/hardware-wallet-go/src/skywallet"
+	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func generateMnemonicCmd() gcli.Command {
