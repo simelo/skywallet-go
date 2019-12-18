@@ -494,7 +494,33 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 func (sq *Sequencer) Wipe() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	return sq.dev.Wipe()
+	msg, err := sq.dev.Wipe()
+	if err != nil {
+		return wire.Message{}, err
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		msg, err = sq.dev.ButtonAck()
+		if err != nil {
+			return wire.Message{}, err
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		_, err := skywallet.DecodeSuccessMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		return msg, nil
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		msgStr, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.WithError(err).Errorln(msgStr)
+		return wire.Message{}, err
+	}
+	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
 func (sq *Sequencer) PinMatrixAck(p string) (wire.Message, error) {
