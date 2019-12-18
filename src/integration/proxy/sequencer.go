@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"errors"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 	messages "github.com/fibercrypto/skywallet-protob/go"
