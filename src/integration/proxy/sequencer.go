@@ -347,7 +347,32 @@ func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool
 func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	return sq.dev.SetMnemonic(mnemonic)
+	msg, err := sq.dev.SetMnemonic(mnemonic)
+	if err != nil {
+		return wire.Message{}, err
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		msg, err = sq.dev.ButtonAck()
+		if err != nil {
+			return wire.Message{}, err
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		msgStr, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.WithError(err).Errorln(msgStr)
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		_, err := skywallet.DecodeSuccessMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		return msg, nil
+	}
+	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
 func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, walletType string) (wire.Message, error) {
