@@ -125,7 +125,46 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 func (sq *Sequencer) Backup() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	return sq.dev.Backup()
+	msg, err := sq.dev.Backup()
+	if err != nil {
+		return wire.Message{}, err
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
+		// FIXME use a reader from sq
+		var pinEnc string
+		//fmt.Printf("PinMatrixRequest response: ")
+		//fmt.Scanln(&pinEnc)
+		msg, err := sq.dev.PinMatrixAck(pinEnc)
+		if err != nil {
+			return wire.Message{}, nil
+		}
+		for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			msg, err = sq.dev.ButtonAck()
+			if err != nil {
+				return wire.Message{}, err
+			}
+		}
+	}
+	for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		msg, err = sq.dev.ButtonAck()
+		if err != nil {
+			return wire.Message{}, err
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		msgStr, err := skywallet.DecodeSuccessMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.Info(msgStr)
+		return msg, nil
+	}
+	responseMsg, err := skywallet.DecodeFailMsg(msg)
+	if err != nil {
+		return wire.Message{}, err
+	}
+	logrus.WithError(err).Errorln(responseMsg)
+	return wire.Message{}, errors.New("error in backup operation")
 }
 
 func (sq *Sequencer) Cancel() (wire.Message, error) {
