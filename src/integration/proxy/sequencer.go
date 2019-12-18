@@ -405,7 +405,7 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 			}
 		case uint16(messages.MessageType_MessageType_PassphraseRequest):
 			var passphrase string
-			// FIXME
+			// FIXME use a reader from sq
 			//fmt.Printf("Input passphrase: ")
 			//fmt.Scanln(&passphrase)
 			msg, err = sq.dev.PassphraseAck(passphrase)
@@ -414,7 +414,7 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 			}
 		case uint16(messages.MessageType_MessageType_PinMatrixRequest):
 			var pinEnc string
-			// FIXME
+			// FIXME use a reader from sq
 			//fmt.Printf("PinMatrixRequest response: ")
 			//fmt.Scanln(&pinEnc)
 			msg, err = sq.dev.PinMatrixAck(pinEnc)
@@ -438,7 +438,57 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, walletType string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	return sq.dev.SignMessage(addressN, addressIndex, message, walletType)
+	msg, err := sq.dev.SignMessage(1, addressIndex, message, walletType)
+	if err != nil {
+		return wire.Message{}, err
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		msg, err = sq.dev.ButtonAck()
+		if err != nil {
+			return wire.Message{}, err
+		}
+	}
+	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
+			var pinEnc string
+			// FIXME use a reader from sq
+			//fmt.Printf("PinMatrixRequest response: ")
+			//fmt.Scanln(&pinEnc)
+			msg, err = sq.dev.PinMatrixAck(pinEnc)
+			if err != nil {
+				return wire.Message{}, err
+			}
+			continue
+		}
+		if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
+			var passphrase string
+			// FIXME use a reader from sq
+			//fmt.Printf("Input passphrase: ")
+			//fmt.Scanln(&passphrase)
+			msg, err = sq.dev.PassphraseAck(passphrase)
+			if err != nil {
+				return wire.Message{}, err
+			}
+			continue
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) {
+		_, err = skywallet.DecodeResponseSkycoinSignMessage(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		return msg, nil
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		msgStr, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.WithError(err).Errorln(msgStr)
+		return wire.Message{}, err
+	}
+	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
 func (sq *Sequencer) Wipe() (wire.Message, error) {
