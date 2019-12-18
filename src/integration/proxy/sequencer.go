@@ -78,7 +78,48 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	return sq.dev.ApplySettings(usePassphrase, label, language)
+	msg, err := sq.dev.ApplySettings(usePassphrase, label, language)
+	if err != nil {
+		return wire.Message{}, nil
+	}
+	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			msg, err = sq.dev.ButtonAck()
+			if err != nil {
+				return wire.Message{}, err
+			}
+			continue
+		}
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
+			var pinEnc string
+			// FIXME use a reader from sq
+			//fmt.Printf("PinMatrixRequest response: ")
+			//fmt.Scanln(&pinEnc)
+			/*pinAckResponse*/_, err := sq.dev.PinMatrixAck(pinEnc)
+			if err != nil {
+				return wire.Message{}, err
+			}
+			// log.Infof("PinMatrixAck response: %s", pinAckResponse)
+			continue
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		failMsg, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.WithError(err).Errorln(failMsg)
+		return wire.Message{}, err
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		successMsg, err := skywallet.DecodeSuccessMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		logrus.Info(successMsg)
+		return msg, nil
+	}
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
 func (sq *Sequencer) Backup() (wire.Message, error) {
