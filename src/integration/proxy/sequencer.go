@@ -1,12 +1,13 @@
-package proxy
+package proxy //nolint goimports
 
 import (
 	"errors"
-	"github.com/sirupsen/logrus"
+	"sync"
+
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 	messages "github.com/fibercrypto/skywallet-protob/go"
-	"sync"
+	"github.com/sirupsen/logrus"
 )
 
 // Sequencer implementation force all messages to be sequential and make the
@@ -16,10 +17,13 @@ type Sequencer struct {
 	sync.Mutex
 }
 
+// NewSequencer create a bew sequencer instance
 func NewSequencer(dev skywallet.Devicer) skywallet.Devicer {
-	return &Sequencer{dev:dev}
+	return &Sequencer{dev: dev}
 }
 
+// AddressGen forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool, walletType string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -75,6 +79,8 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 	return wire.Message{}, err
 }
 
+// ApplySettings forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -95,7 +101,8 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 			// FIXME use a reader from sq
 			//fmt.Printf("PinMatrixRequest response: ")
 			//fmt.Scanln(&pinEnc)
-			/*pinAckResponse*/_, err := sq.dev.PinMatrixAck(pinEnc)
+			/*pinAckResponse*/
+			_, err := sq.dev.PinMatrixAck(pinEnc)
 			if err != nil {
 				return wire.Message{}, err
 			}
@@ -123,6 +130,8 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// Backup forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) Backup() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -168,18 +177,22 @@ func (sq *Sequencer) Backup() (wire.Message, error) {
 	return wire.Message{}, errors.New("error in backup operation")
 }
 
+// Cancel forward the call to Device
 func (sq *Sequencer) Cancel() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.Cancel()
 }
 
+// CheckMessageSignature forward the call to Device
 func (sq *Sequencer) CheckMessageSignature(message, signature, address string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.CheckMessageSignature(message, signature, address)
 }
 
+// ChangePin forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -220,27 +233,32 @@ func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 		return wire.Message{}, errors.New(respMsg)
 	}
 	logrus.WithField("msg", msg).Errorln("unexpected response from device")
-    return wire.Message{}, errors.New("unexpected response from device")
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// Connected forward the call to Device
 func (sq *Sequencer) Connected() bool {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.Connected()
 }
 
+// Available forward the call to Device
 func (sq *Sequencer) Available() bool {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.Available()
 }
 
+// FirmwareUpload forward the call to Device
 func (sq *Sequencer) FirmwareUpload(payload []byte, hash [32]byte) error {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.FirmwareUpload(payload, hash)
 }
 
+// GetFeatures forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) GetFeatures() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -264,6 +282,8 @@ func (sq *Sequencer) GetFeatures() (wire.Message, error) {
 	}
 }
 
+// GenerateMnemonic forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) GenerateMnemonic(wordCount uint32, usePassphrase bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -296,6 +316,8 @@ func (sq *Sequencer) GenerateMnemonic(wordCount uint32, usePassphrase bool) (wir
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// Recovery forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -344,6 +366,8 @@ func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// SetMnemonic forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -375,6 +399,8 @@ func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// TransactionSign forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, walletType string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -435,6 +461,8 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 	}
 }
 
+// SignMessage forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, walletType string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -491,6 +519,8 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// Wipe forward the call to Device and handle all the consecutive command as an
+// atomic sequence
 func (sq *Sequencer) Wipe() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
@@ -523,48 +553,56 @@ func (sq *Sequencer) Wipe() (wire.Message, error) {
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 
+// PinMatrixAck forward the call to Device
 func (sq *Sequencer) PinMatrixAck(p string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.PinMatrixAck(p)
 }
 
+// WordAck forward the call to Device
 func (sq *Sequencer) WordAck(word string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.WordAck(word)
 }
 
+// PassphraseAck forward the call to Device
 func (sq *Sequencer) PassphraseAck(passphrase string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.PassphraseAck(passphrase)
 }
 
+// ButtonAck forward the call to Device
 func (sq *Sequencer) ButtonAck() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.ButtonAck()
 }
 
+// SetAutoPressButton forward the call to Device
 func (sq *Sequencer) SetAutoPressButton(simulateButtonPress bool, simulateButtonType skywallet.ButtonType) error {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.SetAutoPressButton(simulateButtonPress, simulateButtonType)
 }
 
+// Close forward the call to Device
 func (sq *Sequencer) Close() {
 	sq.Lock()
 	defer sq.Unlock()
 	sq.dev.Close()
 }
 
+// Connect forward the call to Device
 func (sq *Sequencer) Connect() error {
 	sq.Lock()
 	defer sq.Unlock()
 	return sq.dev.Connect()
 }
 
+// Disconnect forward the call to Device
 func (sq *Sequencer) Disconnect() error {
 	sq.Lock()
 	defer sq.Unlock()
