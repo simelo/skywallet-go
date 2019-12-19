@@ -34,56 +34,87 @@ func NewSequencer(dev skywallet.Devicer, cliSpeechless bool) skywallet.Devicer {
 	return sq
 }
 
+func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, error) {
+	var err error
+	handleResponse := func(scopedMsg wire.Message, err error) (string, error) {
+		if err != nil {
+			sq.log.WithError(err).Errorln("sending message failed" )
+			return "", errors.New("sending message failed")
+		} else if scopedMsg.Kind == uint16(messages.MessageType_MessageType_Success) {
+			msgStr, err := skywallet.DecodeSuccessMsg(scopedMsg)
+			if err != nil {
+				sq.log.WithError(err).Errorln("unable to decode response")
+				return "", errors.New(msgStr)
+			}
+			return msgStr, nil
+		} else if scopedMsg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+			msgStr, err := skywallet.DecodeFailMsg(scopedMsg)
+			if err != nil {
+				sq.log.WithError(err).Errorln("unable to decode response")
+				return "", errors.New("unable to decode response")
+			}
+			return msgStr, nil
+		} else {
+			return "", errors.New("invalid state")
+		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
+		sq.log.Println("PinMatrixRequest request:")
+		// FIXME use a reader from sq
+		// fmt.Scanln(&pinEnc)
+		var pinEnc string
+		msg, err = sq.dev.PinMatrixAck(pinEnc)
+		msgStr, err := handleResponse(msg, err)
+		if err != nil {
+			sq.log.WithError(err).Errorln("pin matrixAck ack: sending message failed")
+			return msg, err
+		}
+		sq.logCli.Infof("PinMatrixAck response:", msgStr)
+	} else if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
+		var passphrase string
+		sq.log.Println("PassphraseRequest request:")
+		// FIXME use a reader from sq
+		//fmt.Scanln(&passphrase)
+		msg, err = sq.dev.PassphraseAck(passphrase)
+		msgStr, err := handleResponse(msg, err)
+		if err != nil {
+			sq.log.WithError(err).Errorln("passphrase ack: sending message failed")
+			return msg, err
+		}
+		sq.logCli.Infof("PassphraseAck response:", msgStr)
+	} else if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		msg, err = sq.dev.ButtonAck()
+		msgStr, err := handleResponse(msg, err)
+		if err != nil {
+			sq.log.WithError(err).Errorln("handling message failed")
+			return msg, err
+		}
+		sq.log.Infoln("ButtonAck response", msgStr)
+	}
+	return msg, nil
+}
+
 // AddressGen forward the call to Device and handle all the consecutive command as an
 // atomic sequence
 func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool, walletType string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	var pinEnc string
 	msg, err := sq.dev.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
 	if err != nil {
 		sq.log.WithError(err).Errorln("address gen: sending message failed")
 		return wire.Message{}, err
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-			sq.log.Println("PinMatrixRequest request:")
-			// FIXME use a reader from sq
-			// fmt.Scanln(&pinEnc)
-			pinAckResponse, err := sq.dev.PinMatrixAck(pinEnc)
-			if err != nil {
-				sq.log.WithError(err).Errorln("pin matrix ack: sending message failed")
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
 				return wire.Message{}, err
 			}
-			sq.logCli.Infof("PinMatrixAck response: %s", pinAckResponse)
-			continue
-		}
-		if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			var passphrase string
-			sq.log.Println("PassphraseRequest request:")
-			// FIXME use a reader from sq
-			//fmt.Scanln(&passphrase)
-			passphraseAckResponse, err := sq.dev.PassphraseAck(passphrase)
-			if err != nil {
-				sq.log.WithError(err).Errorln("passphrase ack: sending message failed")
-				return wire.Message{}, err
-			}
-			sq.logCli.Infof("PassphraseRequest response: %s", passphraseAckResponse)
-			continue
-		}
-		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			msg, err = sq.dev.ButtonAck()
-			if err != nil {
-				sq.log.WithError(err).Errorln("button ack: sending message failed" )
-				return wire.Message{}, err
-			}
-			continue
 		}
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
 		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+	} else if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
 		failMsg, err := skywallet.DecodeFailMsg(msg)
 		if err != nil {
 			sq.log.WithError(err).Errorln("unable to decode response")
