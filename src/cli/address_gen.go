@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -50,13 +52,10 @@ func addressGenCmd() gcli.Command {
 			addressN := c.Int("addressN")
 			startIndex := c.Int("startIndex")
 			confirmAddress := c.Bool("confirmAddress")
-
 			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
 			if device == nil {
 				return
 			}
-			defer device.Close()
-
 			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
 				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
 				if err != nil {
@@ -64,65 +63,19 @@ func addressGenCmd() gcli.Command {
 					return
 				}
 			}
-
-			var pinEnc string
-			msg, err := device.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-				if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-					fmt.Printf("PinMatrixRequest response: ")
-					fmt.Scanln(&pinEnc)
-					pinAckResponse, err := device.PinMatrixAck(pinEnc)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					log.Infof("PinMatrixAck response: %s", pinAckResponse)
-					continue
-				}
-
-				if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-					var passphrase string
-					fmt.Printf("Input passphrase: ")
-					fmt.Scanln(&passphrase)
-					passphraseAckResponse, err := device.PassphraseAck(passphrase)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					log.Infof("PinMatrixAck response: %s", passphraseAckResponse)
-					continue
-				}
-
-				if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-					msg, err = device.ButtonAck()
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					continue
-				}
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
-				addresses, err := skyWallet.DecodeResponseSkycoinAddress(msg)
+				logrus.WithError(err).Errorln("unable to get address")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
+				msgStr, err := skyWallet.DecodeResponseSkycoinAddress(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to get address")
 					return
 				}
-				fmt.Println(addresses)
+				fmt.Println(msgStr)
 			} else {
-				failMsg, err := skyWallet.DecodeFailMsg(msg)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				fmt.Println("Failed with code: ", failMsg)
-				return
+				logrus.Errorln("invalid state")
 			}
 		},
 	}

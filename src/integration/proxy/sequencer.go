@@ -40,41 +40,41 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 	sq.Lock()
 	defer sq.Unlock()
 	var pinEnc string
-	msg, err := sq.dev.AddressGen(addressN, startIndex, confirmAddress, walletType)
+	msg, err := sq.dev.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
 	if err != nil {
+		sq.log.WithError(err).Errorln("address gen: sending message failed")
 		return wire.Message{}, err
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
 		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
+			sq.log.Println("PinMatrixRequest response:")
 			// FIXME use a reader from sq
-			// fmt.Printf("PinMatrixRequest response: ")
 			// fmt.Scanln(&pinEnc)
 			pinAckResponse, err := sq.dev.PinMatrixAck(pinEnc)
 			if err != nil {
+				sq.log.WithError(err).Errorln("pin matrix ack: sending message failed")
 				return wire.Message{}, err
 			}
-			// TODO this log
-			logrus.Errorln("PinMatrixAck response: %s", pinAckResponse)
+			sq.logCli.Infof("PinMatrixAck response: %s", pinAckResponse)
 			continue
 		}
-
 		if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
 			var passphrase string
+			sq.log.Println("PassphraseRequest request:")
 			// FIXME use a reader from sq
-			//fmt.Printf("Input passphrase: ")
 			//fmt.Scanln(&passphrase)
 			passphraseAckResponse, err := sq.dev.PassphraseAck(passphrase)
 			if err != nil {
-				return wire.Message{}, nil
+				sq.log.WithError(err).Errorln("passphrase ack: sending message failed")
+				return wire.Message{}, err
 			}
-			// TODO this log
-			logrus.Errorln("PinMatrixAck response: %s", passphraseAckResponse)
+			sq.logCli.Infof("PassphraseRequest response: %s", passphraseAckResponse)
 			continue
 		}
-
 		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
 			msg, err = sq.dev.ButtonAck()
 			if err != nil {
+				sq.log.WithError(err).Errorln("button ack: sending message failed" )
 				return wire.Message{}, err
 			}
 			continue
@@ -83,12 +83,17 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
 		return msg, nil
 	}
-	failMsg, err := skywallet.DecodeFailMsg(msg)
-	if err != nil {
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		failMsg, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			sq.log.WithError(err).Errorln("unable to decode response")
+			return wire.Message{}, err
+		}
+		sq.log.WithError(err).Errorln(failMsg)
 		return wire.Message{}, err
 	}
-	logrus.WithError(err).Errorln(failMsg)
-	return wire.Message{}, err
+	sq.log.Errorln("unexpected message")
+	return wire.Message{}, errors.New("unexpected message")
 }
 
 // ApplySettings forward the call to Device and handle all the consecutive command as an
