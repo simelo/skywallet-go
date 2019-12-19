@@ -138,26 +138,11 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 		return wire.Message{}, err
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			msg, err = sq.dev.ButtonAck()
-			if err != nil {
-				sq.log.WithError(err).Errorln("button ack: sending message failed" )
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
 				return wire.Message{}, err
 			}
-			continue
-		}
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-			var pinEnc string
-			sq.log.Println("PinMatrixRequest request: ")
-			// FIXME use a reader from sq
-			//fmt.Scanln(&pinEnc)
-			pinAckResponse, err := sq.dev.PinMatrixAck(pinEnc)
-			if err != nil {
-				sq.log.WithError(err).Errorln("pin matrix ack: sending message failed")
-				return wire.Message{}, err
-			}
-			sq.logCli.Infof("PinMatrixAck response: %s", pinAckResponse)
-			continue
 		}
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
