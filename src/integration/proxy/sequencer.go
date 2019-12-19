@@ -2,24 +2,36 @@ package proxy //nolint goimports
 
 import (
 	"errors"
+	"io/ioutil"
 	"sync"
 
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 	messages "github.com/fibercrypto/skywallet-protob/go"
 	"github.com/sirupsen/logrus"
+	"github.com/skycoin/skycoin/src/util/logging"
 )
 
 // Sequencer implementation force all messages to be sequential and make the
 // command atomic
 type Sequencer struct {
-	dev skywallet.Devicer
 	sync.Mutex
+	log *logging.MasterLogger
+	logCli *logging.MasterLogger
+	dev skywallet.Devicer
 }
 
-// NewSequencer create a bew sequencer instance
-func NewSequencer(dev skywallet.Devicer) skywallet.Devicer {
-	return &Sequencer{dev: dev}
+// NewSequencer create a new sequencer instance
+func NewSequencer(dev skywallet.Devicer, cliSpeechless bool) skywallet.Devicer {
+	sq := &Sequencer{
+		log: logging.NewMasterLogger(),
+		logCli: logging.NewMasterLogger(),
+		dev: dev,
+	}
+	if cliSpeechless {
+		sq.logCli.Out = ioutil.Discard
+	}
+	return sq
 }
 
 // AddressGen forward the call to Device and handle all the consecutive command as an
