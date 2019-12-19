@@ -47,7 +47,7 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
 		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-			sq.log.Println("PinMatrixRequest response:")
+			sq.log.Println("PinMatrixRequest request:")
 			// FIXME use a reader from sq
 			// fmt.Scanln(&pinEnc)
 			pinAckResponse, err := sq.dev.PinMatrixAck(pinEnc)
@@ -103,48 +103,46 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 	defer sq.Unlock()
 	msg, err := sq.dev.ApplySettings(usePassphrase, label, language)
 	if err != nil {
-		return wire.Message{}, nil
+		sq.log.WithError(err).Errorln("apply settings: sending message failed")
+		return wire.Message{}, err
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
 		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
 			msg, err = sq.dev.ButtonAck()
 			if err != nil {
+				sq.log.WithError(err).Errorln("button ack: sending message failed" )
 				return wire.Message{}, err
 			}
 			continue
 		}
 		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
 			var pinEnc string
+			sq.log.Println("PinMatrixRequest request: ")
 			// FIXME use a reader from sq
-			//fmt.Printf("PinMatrixRequest response: ")
 			//fmt.Scanln(&pinEnc)
-			/*pinAckResponse*/
-			_, err := sq.dev.PinMatrixAck(pinEnc)
+			pinAckResponse, err := sq.dev.PinMatrixAck(pinEnc)
 			if err != nil {
+				sq.log.WithError(err).Errorln("pin matrix ack: sending message failed")
 				return wire.Message{}, err
 			}
-			// log.Infof("PinMatrixAck response: %s", pinAckResponse)
+			sq.logCli.Infof("PinMatrixAck response: %s", pinAckResponse)
 			continue
 		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		return msg, nil
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
 		failMsg, err := skywallet.DecodeFailMsg(msg)
 		if err != nil {
+			sq.log.WithError(err).Errorln("unable to decode response")
 			return wire.Message{}, err
 		}
-		logrus.WithError(err).Errorln(failMsg)
+		sq.log.WithError(err).Errorln(failMsg)
 		return wire.Message{}, err
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		successMsg, err := skywallet.DecodeSuccessMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.Info(successMsg)
-		return msg, nil
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	sq.log.Errorln("unexpected message")
+	return wire.Message{}, errors.New("unexpected message")
 }
 
 // Backup forward the call to Device and handle all the consecutive command as an

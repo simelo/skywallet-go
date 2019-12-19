@@ -70,7 +70,7 @@ func addressGenCmd() gcli.Command {
 			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
 				msgStr, err := skyWallet.DecodeResponseSkycoinAddress(msg)
 				if err != nil {
-					logrus.WithError(err).Errorln("unable to get address")
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
 				fmt.Println(msgStr)
