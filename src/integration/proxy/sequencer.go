@@ -100,6 +100,22 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 	return msg, nil
 }
 
+func (sq *Sequencer) handleFirstCommandResponse(successMsgKind messages.MessageType, commandName string, err error, msg wire.Message) (wire.Message, error) {
+	if err != nil {
+		sq.log.WithError(err).Errorln(commandName + ": sending message failed")
+		return wire.Message{}, err
+	}
+	for msg.Kind != uint16(successMsgKind) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
+		}
+	}
+	return msg, err
+}
+
 func (sq *Sequencer) handleFinalResponse(msg wire.Message,  expectedMsgKind messages.MessageType) (wire.Message, error) {
 	if msg.Kind == uint16(expectedMsgKind) {
 		return msg, nil
@@ -122,17 +138,9 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_ResponseSkycoinAddress, "address gen", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("address gen: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseSkycoinAddress)
 }
@@ -143,24 +151,9 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.ApplySettings(usePassphrase, label, language)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "apply settings", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("apply settings: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
-		for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			msg, err = sq.dev.ButtonAck()
-			if err != nil {
-				sq.log.WithError(err).Errorln("unable to apply settings")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
@@ -171,24 +164,9 @@ func (sq *Sequencer) Backup() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.Backup()
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "backup", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("backup: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
-		for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			msg, err = sq.dev.ButtonAck()
-			if err != nil {
-				sq.log.WithError(err).Errorln("unable to create backup")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
@@ -213,17 +191,9 @@ func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.ChangePin(new(bool))
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "change pin", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("change pin: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
@@ -255,17 +225,9 @@ func (sq *Sequencer) GetFeatures() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.GetFeatures()
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Features, "features", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("get features: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Features) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Features)
 }
@@ -276,17 +238,9 @@ func (sq *Sequencer) GenerateMnemonic(wordCount uint32, usePassphrase bool) (wir
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.GenerateMnemonic(wordCount, usePassphrase)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "generate mnemonic", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("generate mnemonic: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
@@ -324,17 +278,9 @@ func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.SetMnemonic(mnemonic)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "set mnemonic", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("set mnemonic: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Success) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
@@ -354,22 +300,9 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 	//	return
 	//}
 	msg, err := sq.dev.TransactionSign(inputs, outputs, walletType)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_ResponseTransactionSign, "sign transaction", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("sign transaction: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.dev.ButtonAck(); err != nil {
-				sq.log.WithError(err).Errorln("unable to sign transaction")
-				return wire.Message{}, err
-			}
-		} else if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseTransactionSign)
 }
@@ -380,22 +313,9 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.SignMessage(1, addressIndex, message, walletType)
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_ResponseSkycoinSignMessage, "sign message", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("sign message: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.dev.ButtonAck(); err != nil {
-				sq.log.WithError(err).Errorln("unable to sign transaction")
-				return wire.Message{}, err
-			}
-		} else if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseSkycoinSignMessage)
 }
@@ -406,17 +326,9 @@ func (sq *Sequencer) Wipe() (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
 	msg, err := sq.dev.Wipe()
+	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "wipe", err, msg)
 	if err != nil {
-		sq.log.WithError(err).Errorln("wipe: sending message failed")
 		return wire.Message{}, err
-	}
-	for msg.Kind != uint16(messages.MessageType_MessageType_Success) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-			if msg, err = sq.handleInputInteraction(msg); err != nil {
-				sq.log.WithError(err).Errorln("error handling interaction")
-				return wire.Message{}, err
-			}
-		}
 	}
 	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
