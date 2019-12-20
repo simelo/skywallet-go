@@ -138,9 +138,16 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 		return wire.Message{}, err
 	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
 			if msg, err = sq.handleInputInteraction(msg); err != nil {
 				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
+		}
+		for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			msg, err = sq.dev.ButtonAck()
+			if err != nil {
+				sq.log.WithError(err).Errorln("unable to apply settings")
 				return wire.Message{}, err
 			}
 		}
