@@ -449,50 +449,35 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 	//}
 	msg, err := sq.dev.TransactionSign(inputs, outputs, walletType)
 	if err != nil {
+		sq.log.WithError(err).Errorln("sign transaction: sending message failed")
 		return wire.Message{}, err
 	}
-	for {
-		logrus.Errorln("msg.Kind", msg.Kind)
-		switch msg.Kind {
-		case uint16(messages.MessageType_MessageType_ResponseTransactionSign):
-			return msg, nil
-		case uint16(messages.MessageType_MessageType_Success):
-			return wire.Message{}, errors.New("should end with ResponseTransactionSign request")
-		case uint16(messages.MessageType_MessageType_ButtonRequest):
-			msg, err = sq.dev.ButtonAck()
-			if err != nil {
+	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.dev.ButtonAck(); err != nil {
+				sq.log.WithError(err).Errorln("unable to sign transaction")
 				return wire.Message{}, err
 			}
-		case uint16(messages.MessageType_MessageType_PassphraseRequest):
-			var passphrase string
-			// FIXME use a reader from sq
-			//fmt.Printf("Input passphrase: ")
-			//fmt.Scanln(&passphrase)
-			msg, err = sq.dev.PassphraseAck(passphrase)
-			if err != nil {
+		} else if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
 				return wire.Message{}, err
 			}
-		case uint16(messages.MessageType_MessageType_PinMatrixRequest):
-			var pinEnc string
-			// FIXME use a reader from sq
-			//fmt.Printf("PinMatrixRequest response: ")
-			//fmt.Scanln(&pinEnc)
-			msg, err = sq.dev.PinMatrixAck(pinEnc)
-			if err != nil {
-				return wire.Message{}, err
-			}
-		case uint16(messages.MessageType_MessageType_Failure):
-			failMsg, err := skywallet.DecodeFailMsg(msg)
-			if err != nil {
-				return wire.Message{}, err
-			}
-			logrus.WithError(err).Errorln(failMsg)
-			return wire.Message{}, errors.New("failed")
-		default:
-			logrus.Errorf("received unexpected message type: %s", messages.MessageType(msg.Kind))
-			return wire.Message{}, errors.New("unexpected message")
 		}
 	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
+		return msg, nil
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		msgStr, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			return wire.Message{}, err
+		}
+		sq.log.Errorln(msgStr)
+		return wire.Message{}, errors.New(msgStr)
+	}
+	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
+	return wire.Message{}, errors.New("unexpected response from device")
 }
 
 // SignMessage forward the call to Device and handle all the consecutive command as an

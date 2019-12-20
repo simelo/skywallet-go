@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -107,63 +109,19 @@ func transactionSignCmd() gcli.Command {
 				}
 				transactionOutputs = append(transactionOutputs, &transactionOutput)
 			}
-
-			msg, err := device.TransactionSign(transactionInputs, transactionOutputs, walletType)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.TransactionSign(transactionInputs, transactionOutputs, walletType)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			for {
-				switch msg.Kind {
-				case uint16(messages.MessageType_MessageType_ResponseTransactionSign):
-					signatures, err := skyWallet.DecodeResponseTransactionSign(msg)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					fmt.Println(signatures)
-					return
-				case uint16(messages.MessageType_MessageType_Success):
-					fmt.Println("Should end with ResponseTransactionSign request")
-					return
-				case uint16(messages.MessageType_MessageType_ButtonRequest):
-					msg, err = device.ButtonAck()
-					if err != nil {
-						log.Error(err)
-						return
-					}
-				case uint16(messages.MessageType_MessageType_PassphraseRequest):
-					var passphrase string
-					fmt.Printf("Input passphrase: ")
-					fmt.Scanln(&passphrase)
-					msg, err = device.PassphraseAck(passphrase)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-				case uint16(messages.MessageType_MessageType_PinMatrixRequest):
-					var pinEnc string
-					fmt.Printf("PinMatrixRequest response: ")
-					fmt.Scanln(&pinEnc)
-					msg, err = device.PinMatrixAck(pinEnc)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-				case uint16(messages.MessageType_MessageType_Failure):
-					failMsg, err := skyWallet.DecodeFailMsg(msg)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-
-					fmt.Printf("Failed with message: %s\n", failMsg)
-					return
-				default:
-					log.Errorf("received unexpected message type: %s", messages.MessageType(msg.Kind))
+				logrus.WithError(err).Errorln("unable to sign transaction")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
+				msgStr, err := skyWallet.DecodeResponseTransactionSign(msg)
+				if err != nil {
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
+				fmt.Println(msgStr)
+			} else {
+				logrus.Errorln("invalid state")
 			}
 		},
 	}
