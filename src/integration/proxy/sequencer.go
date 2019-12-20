@@ -171,10 +171,17 @@ func (sq *Sequencer) Backup() (wire.Message, error) {
 		sq.log.WithError(err).Errorln("backup: sending message failed")
 		return wire.Message{}, err
 	}
-	for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
 			if msg, err = sq.handleInputInteraction(msg); err != nil {
 				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
+		}
+		for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			msg, err = sq.dev.ButtonAck()
+			if err != nil {
+				sq.log.WithError(err).Errorln("unable to create backup")
 				return wire.Message{}, err
 			}
 		}
