@@ -112,6 +112,9 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 			}
 		}
 	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_SkycoinAddress) {
+		return msg, nil
+	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
 		return msg, nil
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
