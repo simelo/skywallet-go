@@ -2,11 +2,12 @@ package cli
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
+	"github.com/micro/protobuf/proto"
 	"os"
 	"runtime"
 
-	"github.com/gogo/protobuf/proto"
 	gcli "github.com/urfave/cli"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
@@ -33,8 +34,6 @@ func featuresCmd() gcli.Command {
 			if device == nil {
 				return
 			}
-			defer device.Close()
-
 			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
 				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
 				if err != nil {
@@ -42,22 +41,16 @@ func featuresCmd() gcli.Command {
 					return
 				}
 			}
-
-			msg, err := device.GetFeatures()
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.GetFeatures()
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			switch msg.Kind {
-			case uint16(messages.MessageType_MessageType_Features):
+				logrus.WithError(err).Errorln("unable to get features")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_Features) {
 				features := &messages.Features{}
-				err = proto.Unmarshal(msg.Data, features)
-				if err != nil {
+				if err = proto.Unmarshal(msg.Data, features); err != nil {
 					log.Error(err)
 					return
 				}
-
 				enc := json.NewEncoder(os.Stdout)
 				if err = enc.Encode(features); err != nil {
 					log.Errorln(err)
@@ -69,17 +62,8 @@ func featuresCmd() gcli.Command {
 					return
 				}
 				log.Printf("\n\nFirmware features:\n%s", ff)
-			// TODO: figure out if this method can even return success or failure msg.
-			case uint16(messages.MessageType_MessageType_Failure), uint16(messages.MessageType_MessageType_Success):
-				msgData, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-
-				fmt.Println(msgData)
-			default:
-				log.Errorf("received unexpected message type: %s", messages.MessageType(msg.Kind))
+			} else {
+				logrus.Errorln("invalid state")
 			}
 		},
 	}
