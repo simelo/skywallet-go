@@ -407,29 +407,29 @@ func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	defer sq.Unlock()
 	msg, err := sq.dev.SetMnemonic(mnemonic)
 	if err != nil {
+		sq.log.WithError(err).Errorln("set mnemonic: sending message failed")
 		return wire.Message{}, err
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		msg, err = sq.dev.ButtonAck()
-		if err != nil {
-			return wire.Message{}, err
+	for msg.Kind != uint16(messages.MessageType_MessageType_Success) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
 		}
+	}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		return msg, nil
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
 		msgStr, err := skywallet.DecodeFailMsg(msg)
 		if err != nil {
 			return wire.Message{}, err
 		}
-		logrus.WithError(err).Errorln(msgStr)
+		sq.log.Errorln(msgStr)
+		return wire.Message{}, errors.New(msgStr)
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		_, err := skywallet.DecodeSuccessMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		return msg, nil
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 

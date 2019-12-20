@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -36,7 +38,6 @@ func setMnemonicCmd() gcli.Command {
 				return
 			}
 			defer device.Close()
-
 			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
 				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
 				if err != nil {
@@ -44,29 +45,21 @@ func setMnemonicCmd() gcli.Command {
 					return
 				}
 			}
-
 			mnemonic := c.String("mnemonic")
-			msg, err := device.SetMnemonic(mnemonic)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.SetMnemonic(mnemonic)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				msg, err = device.ButtonAck()
+				logrus.WithError(err).Errorln("unable to set mnemonic")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+				msgStr, err := skyWallet.DecodeSuccessMsg(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
+				fmt.Println(msgStr)
+			} else {
+				logrus.Errorln("invalid state")
 			}
-
-			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			fmt.Println(responseMsg)
 		},
 	}
 }
