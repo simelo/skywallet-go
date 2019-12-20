@@ -9,7 +9,6 @@ import (
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 	messages "github.com/fibercrypto/skywallet-protob/go"
-	"github.com/sirupsen/logrus"
 	"github.com/skycoin/skycoin/src/util/logging"
 )
 
@@ -104,6 +103,22 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 	return msg, nil
 }
 
+func (sq *Sequencer) handleFinalResponse(msg wire.Message,  expectedMsgKind messages.MessageType) (wire.Message, error) {
+	if msg.Kind == uint16(expectedMsgKind) {
+		return msg, nil
+	} else if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
+		failMsg, err := skywallet.DecodeFailMsg(msg)
+		if err != nil {
+			sq.log.WithError(err).Errorln("unable to decode response")
+			return wire.Message{}, err
+		}
+		sq.log.Errorln(failMsg)
+		return wire.Message{}, errors.New(failMsg)
+	}
+	sq.log.Errorln("unexpected message")
+	return wire.Message{}, errors.New("unexpected message")
+}
+
 // AddressGen forward the call to Device and handle all the consecutive command as an
 // atomic sequence
 func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool, walletType string) (wire.Message, error) {
@@ -122,22 +137,7 @@ func (sq *Sequencer) AddressGen(addressN, startIndex uint32, confirmAddress bool
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_SkycoinAddress) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
-		return msg, nil
-	} else if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		failMsg, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			sq.log.WithError(err).Errorln("unable to decode response")
-			return wire.Message{}, err
-		}
-		sq.log.WithError(err).Errorln(failMsg)
-		return wire.Message{}, err
-	}
-	sq.log.Errorln("unexpected message")
-	return wire.Message{}, errors.New("unexpected message")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseSkycoinAddress)
 }
 
 // ApplySettings forward the call to Device and handle all the consecutive command as an
@@ -165,20 +165,7 @@ func (sq *Sequencer) ApplySettings(usePassphrase *bool, label string, language s
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		failMsg, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			sq.log.WithError(err).Errorln("unable to decode response")
-			return wire.Message{}, err
-		}
-		sq.log.WithError(err).Errorln(failMsg)
-		return wire.Message{}, err
-	}
-	sq.log.Errorln("unexpected message")
-	return wire.Message{}, errors.New("unexpected message")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // Backup forward the call to Device and handle all the consecutive command as an
@@ -206,20 +193,7 @@ func (sq *Sequencer) Backup() (wire.Message, error) {
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		msgStr, err := skywallet.DecodeSuccessMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.Info(msgStr)
-		return msg, nil
-	}
-	responseMsg, err := skywallet.DecodeFailMsg(msg)
-	if err != nil {
-		return wire.Message{}, err
-	}
-	logrus.WithError(err).Errorln(responseMsg)
-	return wire.Message{}, errors.New("error in backup operation")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // Cancel forward the call to Device
@@ -254,24 +228,7 @@ func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		respMsg, err := skywallet.DecodeSuccessMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.WithError(err).Errorln(respMsg)
-		return wire.Message{}, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		respMsg, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.WithError(err).Errorln(respMsg)
-		return wire.Message{}, errors.New(respMsg)
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // Connected forward the call to Device
@@ -313,19 +270,7 @@ func (sq *Sequencer) GetFeatures() (wire.Message, error) {
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Features) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		respMsg, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.WithError(err).Errorln(respMsg)
-		return wire.Message{}, errors.New(respMsg)
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Features)
 }
 
 // GenerateMnemonic forward the call to Device and handle all the consecutive command as an
@@ -346,19 +291,7 @@ func (sq *Sequencer) GenerateMnemonic(wordCount uint32, usePassphrase bool) (wir
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		sq.log.Errorln(msgStr)
-		return wire.Message{}, errors.New(msgStr)
-	}
-	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // Recovery forward the call to Device and handle all the consecutive command as an
@@ -385,19 +318,7 @@ func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		sq.log.Errorln(msgStr)
-		return wire.Message{}, errors.New(msgStr)
-	}
-	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // SetMnemonic forward the call to Device and handle all the consecutive command as an
@@ -418,19 +339,7 @@ func (sq *Sequencer) SetMnemonic(mnemonic string) (wire.Message, error) {
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		sq.log.Errorln(msgStr)
-		return wire.Message{}, errors.New(msgStr)
-	}
-	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // TransactionSign forward the call to Device and handle all the consecutive command as an
@@ -465,19 +374,7 @@ func (sq *Sequencer) TransactionSign(inputs []*messages.SkycoinTransactionInput,
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		sq.log.Errorln(msgStr)
-		return wire.Message{}, errors.New(msgStr)
-	}
-	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseTransactionSign)
 }
 
 // SignMessage forward the call to Device and handle all the consecutive command as an
@@ -503,19 +400,7 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		sq.log.Errorln(msgStr)
-		return wire.Message{}, errors.New(msgStr)
-	}
-	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_ResponseSkycoinSignMessage)
 }
 
 // Wipe forward the call to Device and handle all the consecutive command as an
@@ -536,19 +421,7 @@ func (sq *Sequencer) Wipe() (wire.Message, error) {
 			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		return msg, nil
-	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
-		msgStr, err := skywallet.DecodeFailMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		logrus.WithError(err).Errorln(msgStr)
-		return wire.Message{}, err
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
-	return wire.Message{}, errors.New("unexpected response from device")
+	return sq.handleFinalResponse(msg, messages.MessageType_MessageType_Success)
 }
 
 // PinMatrixAck forward the call to Device
