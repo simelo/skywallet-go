@@ -214,24 +214,17 @@ func (sq *Sequencer) CheckMessageSignature(message, signature, address string) (
 func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	var pinEnc string
 	msg, err := sq.dev.ChangePin(new(bool))
 	if err != nil {
+		sq.log.WithError(err).Errorln("backup: sending message failed")
 		return wire.Message{}, err
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		msg, err = sq.dev.ButtonAck()
-		if err != nil {
-			return wire.Message{}, err
-		}
-	}
-	for msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-		// FIXME use a reader from sq
-		//fmt.Printf("PinMatrixRequest response: ")
-		//fmt.Scanln(&pinEnc)
-		msg, err = sq.dev.PinMatrixAck(pinEnc)
-		if err != nil {
-			return wire.Message{}, err
+	for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
 		}
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
