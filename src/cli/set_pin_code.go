@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -32,7 +34,6 @@ func setPinCode() gcli.Command {
 				return
 			}
 			defer device.Close()
-
 			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
 				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
 				if err != nil {
@@ -40,40 +41,20 @@ func setPinCode() gcli.Command {
 					return
 				}
 			}
-
-			var pinEnc string
-			msg, err := device.ChangePin(new(bool))
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.ChangePin(new(bool))
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				msg, err = device.ButtonAck()
+				logrus.WithError(err).Errorln("unable to create backup")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+				msgStr, err := skyWallet.DecodeSuccessMsg(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
+				fmt.Println(msgStr)
+			} else {
+				logrus.Errorln("invalid state")
 			}
-
-			for msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-				fmt.Printf("PinMatrixRequest response: ")
-				fmt.Scanln(&pinEnc)
-				msg, err = device.PinMatrixAck(pinEnc)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
-			// handle success or failure msg
-			respMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			fmt.Println(respMsg)
 		},
 	}
 }
