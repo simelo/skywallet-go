@@ -92,13 +92,10 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 			return msg, err
 		}
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		msg, err = sq.dev.ButtonAck()
-		msgStr, err := handleResponse(msg, err)
-		if err != nil {
+		if msg, err = sq.dev.ButtonAck(); err != nil {
 			sq.log.WithError(err).Errorln("handling message failed")
 			return msg, err
 		}
-		sq.log.Infoln("ButtonAck response", msgStr)
 	}
 	return msg, nil
 }
