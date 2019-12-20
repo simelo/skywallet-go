@@ -487,43 +487,23 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 	defer sq.Unlock()
 	msg, err := sq.dev.SignMessage(1, addressIndex, message, walletType)
 	if err != nil {
+		sq.log.WithError(err).Errorln("sign message: sending message failed")
 		return wire.Message{}, err
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		msg, err = sq.dev.ButtonAck()
-		if err != nil {
-			return wire.Message{}, err
-		}
-	}
 	for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-			var pinEnc string
-			// FIXME use a reader from sq
-			//fmt.Printf("PinMatrixRequest response: ")
-			//fmt.Scanln(&pinEnc)
-			msg, err = sq.dev.PinMatrixAck(pinEnc)
-			if err != nil {
+		if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+			if msg, err = sq.dev.ButtonAck(); err != nil {
+				sq.log.WithError(err).Errorln("unable to sign transaction")
 				return wire.Message{}, err
 			}
-			continue
-		}
-		if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-			var passphrase string
-			// FIXME use a reader from sq
-			//fmt.Printf("Input passphrase: ")
-			//fmt.Scanln(&passphrase)
-			msg, err = sq.dev.PassphraseAck(passphrase)
-			if err != nil {
+		} else if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
 				return wire.Message{}, err
 			}
-			continue
 		}
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) {
-		_, err = skywallet.DecodeResponseSkycoinSignMessage(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
 		return msg, nil
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
@@ -531,10 +511,10 @@ func (sq *Sequencer) SignMessage(addressN, addressIndex int, message string, wal
 		if err != nil {
 			return wire.Message{}, err
 		}
-		logrus.WithError(err).Errorln(msgStr)
-		return wire.Message{}, err
+		sq.log.Errorln(msgStr)
+		return wire.Message{}, errors.New(msgStr)
 	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 

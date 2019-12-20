@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -57,64 +59,19 @@ func signMessageCmd() gcli.Command {
 			addressIndex := c.Int("addressIndex")
 			message := c.String("message")
 			walletType := c.String("walletType")
-			var signature string
-
-			msg, err := device.SignMessage(1, addressIndex, message, walletType)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.SignMessage(1, addressIndex, message, walletType)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				msg, err = device.ButtonAck()
+				logrus.WithError(err).Errorln("unable to sign transaction")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) {
+				msgStr, err := skyWallet.DecodeResponseSkycoinSignMessage(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
-			}
-
-			for msg.Kind != uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
-				if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-					var pinEnc string
-					fmt.Printf("PinMatrixRequest response: ")
-					fmt.Scanln(&pinEnc)
-					msg, err = device.PinMatrixAck(pinEnc)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					continue
-				}
-
-				if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-					var passphrase string
-					fmt.Printf("Input passphrase: ")
-					fmt.Scanln(&passphrase)
-					msg, err = device.PassphraseAck(passphrase)
-					if err != nil {
-						log.Error(err)
-						return
-					}
-					continue
-				}
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinSignMessage) {
-				signature, err = skyWallet.DecodeResponseSkycoinSignMessage(msg)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				fmt.Print(signature)
+				fmt.Println(msgStr)
 			} else {
-				failMsg, err := skyWallet.DecodeFailMsg(msg)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-
-				fmt.Printf("Failed with message: %s\n", failMsg)
-				return
+				logrus.Errorln("invalid state")
 			}
 		},
 	}
