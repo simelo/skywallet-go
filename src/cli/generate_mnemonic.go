@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -52,29 +54,20 @@ func generateMnemonicCmd() gcli.Command {
 					return
 				}
 			}
-
-			msg, err := device.GenerateMnemonic(wordCount, usePassphrase)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.GenerateMnemonic(wordCount, usePassphrase)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				// Send ButtonAck
-				msg, err = device.ButtonAck()
+				logrus.WithError(err).Errorln("unable to generate mnemonic")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+				msgStr, err := skyWallet.DecodeSuccessMsg(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
+				fmt.Println(msgStr)
+			} else {
+				logrus.Errorln("invalid state")
 			}
-
-			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			fmt.Println(responseMsg)
 		},
 	}
 }
