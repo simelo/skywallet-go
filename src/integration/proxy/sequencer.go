@@ -223,10 +223,10 @@ func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 	defer sq.Unlock()
 	msg, err := sq.dev.ChangePin(new(bool))
 	if err != nil {
-		sq.log.WithError(err).Errorln("backup: sending message failed")
+		sq.log.WithError(err).Errorln("change pin: sending message failed")
 		return wire.Message{}, err
 	}
-	for msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
+	for msg.Kind != uint16(messages.MessageType_MessageType_Failure) && msg.Kind != uint16(messages.MessageType_MessageType_Success) {
 		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
 			if msg, err = sq.handleInputInteraction(msg); err != nil {
 				sq.log.WithError(err).Errorln("error handling interaction")
