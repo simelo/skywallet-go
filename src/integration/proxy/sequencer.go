@@ -2,6 +2,7 @@ package proxy //nolint goimports
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"sync"
 
@@ -82,6 +83,15 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 			return msg, err
 		}
 		sq.logCli.Infof("PassphraseAck response:", msgStr)
+	} else if msg.Kind == uint16(messages.MessageType_MessageType_WordRequest) {
+		var word string
+		fmt.Printf("Word: ")
+		// FIXME use a reader from sq
+		fmt.Scanln(&word)
+		if msg, err = sq.dev.WordAck(word); err != nil {
+			sq.log.WithError(err).Errorln("word ack: sending message failed")
+			return msg, err
+		}
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
 		msg, err = sq.dev.ButtonAck()
 		msgStr, err := handleResponse(msg, err)
@@ -359,6 +369,7 @@ func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool
 	defer sq.Unlock()
 	msg, err := sq.dev.Recovery(wordCount, usePassphrase, dryRun)
 	if err != nil {
+		sq.log.WithError(err).Errorln("recovery: sending message failed")
 		return wire.Message{}, err
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
@@ -367,38 +378,26 @@ func (sq *Sequencer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool
 			return wire.Message{}, err
 		}
 	}
-	for msg.Kind == uint16(messages.MessageType_MessageType_WordRequest) {
-		// FIXME use a reader from sq
-		var word string
-		//fmt.Printf("Word: ")
-		//fmt.Scanln(&word)
-		msg, err = sq.dev.WordAck(word)
-		if err != nil {
-			return wire.Message{}, err
+	for msg.Kind != uint16(messages.MessageType_MessageType_Success) && msg.Kind != uint16(messages.MessageType_MessageType_Failure) {
+		if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) || msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) || msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) || msg.Kind == uint16(messages.MessageType_MessageType_WordRequest) {
+			if msg, err = sq.handleInputInteraction(msg); err != nil {
+				sq.log.WithError(err).Errorln("error handling interaction")
+				return wire.Message{}, err
+			}
 		}
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-		msg, err = sq.dev.ButtonAck()
-		if err != nil {
-			return wire.Message{}, err
-		}
+	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+		return msg, nil
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_Failure) {
 		msgStr, err := skywallet.DecodeFailMsg(msg)
 		if err != nil {
 			return wire.Message{}, err
 		}
-		logrus.WithError(err).Errorln(msgStr)
-		return wire.Message{}, err
+		sq.log.Errorln(msgStr)
+		return wire.Message{}, errors.New(msgStr)
 	}
-	if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-		_, err := skywallet.DecodeSuccessMsg(msg)
-		if err != nil {
-			return wire.Message{}, err
-		}
-		return msg, nil
-	}
-	logrus.WithField("msg", msg).Errorln("unexpected response from device")
+	sq.log.WithField("msg", msg).Errorln("unexpected response from device")
 	return wire.Message{}, errors.New("unexpected response from device")
 }
 

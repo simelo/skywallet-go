@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"os"
 	"runtime"
 
@@ -62,48 +64,20 @@ func recoveryCmd() gcli.Command {
 			}
 			dryRun := c.Bool("dryRun")
 			wordCount := uint32(c.Uint64("wordCount"))
-			msg, err := device.Recovery(wordCount, usePassphrase, dryRun)
+			sq := proxy.NewSequencer(device, false)
+			msg, err := sq.Recovery(wordCount, usePassphrase, dryRun)
 			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				msg, err = device.ButtonAck()
+				logrus.WithError(err).Errorln("unable to recover device")
+			} else if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
+				msgStr, err := skyWallet.DecodeSuccessMsg(msg)
 				if err != nil {
-					log.Error(err)
+					logrus.WithError(err).Errorln("unable to decode response")
 					return
 				}
+				fmt.Println(msgStr)
+			} else {
+				logrus.Errorln("invalid state")
 			}
-
-			for msg.Kind == uint16(messages.MessageType_MessageType_WordRequest) {
-				var word string
-				fmt.Printf("Word: ")
-				fmt.Scanln(&word)
-				msg, err = device.WordAck(word)
-				if err != nil {
-					log.Error(err.Error())
-					os.Exit(1)
-					return
-				}
-			}
-
-			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				// Send ButtonAck
-				msg, err = device.ButtonAck()
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
-			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			fmt.Println(responseMsg)
 		},
 	}
 }
