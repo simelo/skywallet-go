@@ -1,13 +1,9 @@
 package cli
 
 import (
-	"fmt"
-	"github.com/Sirupsen/logrus"
 	messages "github.com/fibercrypto/skywallet-protob/go"
 
 	gcli "github.com/urfave/cli"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func addressGenCmd() gcli.Command {
@@ -53,18 +49,7 @@ func addressGenCmd() gcli.Command {
 				return
 			}
 			msg, err := sq.AddressGen(uint32(addressN), uint32(startIndex), confirmAddress, walletType)
-			if err != nil {
-				logrus.WithError(err).Errorln("unable to get address")
-			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseSkycoinAddress) {
-				msgStr, err := skyWallet.DecodeResponseSkycoinAddress(msg)
-				if err != nil {
-					logrus.WithError(err).Errorln("unable to decode response")
-					return
-				}
-				fmt.Println(msgStr)
-			} else {
-				logrus.Errorln("invalid state")
-			}
+			handleFinalResponse(msg, err, "unable to get address", messages.MessageType_MessageType_ResponseSkycoinAddress)
 		},
 	}
 }

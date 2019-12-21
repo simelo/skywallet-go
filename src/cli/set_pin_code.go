@@ -1,14 +1,9 @@
 package cli
 
 import (
-	"fmt"
-	"github.com/Sirupsen/logrus"
-
 	gcli "github.com/urfave/cli"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func setPinCode() gcli.Command {
@@ -31,18 +26,7 @@ func setPinCode() gcli.Command {
 				return
 			}
 			msg, err := sq.ChangePin(new(bool))
-			if err != nil {
-				logrus.WithError(err).Errorln("unable to create backup")
-			} else if msg.Kind == uint16(messages.MessageType_MessageType_Success) {
-				msgStr, err := skyWallet.DecodeSuccessMsg(msg)
-				if err != nil {
-					logrus.WithError(err).Errorln("unable to decode response")
-					return
-				}
-				fmt.Println(msgStr)
-			} else {
-				logrus.Errorln("invalid state")
-			}
+			handleFinalResponse(msg, err, "unable to change pin", messages.MessageType_MessageType_Success)
 		},
 	}
 }

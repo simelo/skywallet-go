@@ -1,10 +1,8 @@
 package cli
 
 import (
-	"fmt"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 	gcli "github.com/urfave/cli"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func checkMessageSignatureCmd() gcli.Command {
@@ -42,18 +40,7 @@ func checkMessageSignatureCmd() gcli.Command {
 				return
 			}
 			msg, err := sq.CheckMessageSignature(message, signature, address)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			fmt.Println(responseMsg)
+			handleFinalResponse(msg, err, "unable to check message signature", messages.MessageType_MessageType_Success)
 		},
 	}
 }

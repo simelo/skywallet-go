@@ -1,10 +1,8 @@
 package cli
 
 import (
-	"fmt"
+	messages "github.com/fibercrypto/skywallet-protob/go"
 	gcli "github.com/urfave/cli"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func cancelCmd() gcli.Command {
@@ -27,16 +25,7 @@ func cancelCmd() gcli.Command {
 				return
 			}
 			msg, err := sq.Cancel()
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			fmt.Println(responseMsg)
+			handleFinalResponse(msg, err, "unable to cancel", messages.MessageType_MessageType_Success)
 		},
 	}
 }

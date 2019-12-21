@@ -2,14 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"github.com/gogo/protobuf/proto"
 
 	gcli "github.com/urfave/cli"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
 )
 
 func transactionSignCmd() gcli.Command {
@@ -94,18 +91,7 @@ func transactionSignCmd() gcli.Command {
 				return
 			}
 			msg, err := sq.TransactionSign(transactionInputs, transactionOutputs, walletType)
-			if err != nil {
-				logrus.WithError(err).Errorln("unable to sign transaction")
-			} else if msg.Kind == uint16(messages.MessageType_MessageType_ResponseTransactionSign) {
-				msgStr, err := skyWallet.DecodeResponseTransactionSign(msg)
-				if err != nil {
-					logrus.WithError(err).Errorln("unable to decode response")
-					return
-				}
-				fmt.Println(msgStr)
-			} else {
-				logrus.Errorln("invalid state")
-			}
+			handleFinalResponse(msg, err, "unable to sign transaction", messages.MessageType_MessageType_ResponseTransactionSign)
 		},
 	}
 }

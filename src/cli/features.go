@@ -1,15 +1,8 @@
 package cli
 
 import (
-	"encoding/json"
-	"github.com/Sirupsen/logrus"
-	"github.com/micro/protobuf/proto"
-	gcli "github.com/urfave/cli"
-	"os"
-
 	messages "github.com/fibercrypto/skywallet-protob/go"
-
-	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
+	gcli "github.com/urfave/cli"
 )
 
 func featuresCmd() gcli.Command {
@@ -32,28 +25,7 @@ func featuresCmd() gcli.Command {
 				return
 			}
 			msg, err := sq.GetFeatures()
-			if err != nil {
-				logrus.WithError(err).Errorln("unable to get features")
-			} else if msg.Kind == uint16(messages.MessageType_MessageType_Features) {
-				features := &messages.Features{}
-				if err = proto.Unmarshal(msg.Data, features); err != nil {
-					log.Error(err)
-					return
-				}
-				enc := json.NewEncoder(os.Stdout)
-				if err = enc.Encode(features); err != nil {
-					log.Errorln(err)
-					return
-				}
-				ff := skyWallet.NewFirmwareFeatures(uint64(*features.FirmwareFeatures))
-				if err := ff.Unmarshal(); err != nil {
-					log.Errorln(err)
-					return
-				}
-				log.Printf("\n\nFirmware features:\n%s", ff)
-			} else {
-				logrus.Errorln("invalid state")
-			}
+			handleFinalResponse(msg, err, "unable to get features", messages.MessageType_MessageType_Features)
 		},
 	}
 }
