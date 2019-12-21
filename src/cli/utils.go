@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
@@ -44,68 +44,53 @@ func createDevice(devType string) (skywallet.Devicer, error) {
 	return proxy.NewSequencer(device, false), nil
 }
 
-func handleFinalResponse(msg wire.Message, err error, errMsg string, expectedMsgKind messages.MessageType) error {
+func handleFinalResponse(msg wire.Message, err error, errMsg string, expectedMsgKind messages.MessageType) {
 	if err != nil {
 		logrus.WithError(err).Errorln(errMsg)
-		return err
 	}
 	if msg.Kind != uint16(expectedMsgKind) {
-		logrus.Errorln(errMsg)
-		return errors.New("invalid state")
+		logrus.Errorln(errMsg + "invalid state")
 	}
 	switch messages.MessageType(msg.Kind) {
 	case messages.MessageType_MessageType_ResponseSkycoinAddress:
 		msgStr, err := skywallet.DecodeResponseSkycoinAddress(msg)
 		if err != nil {
 			logrus.WithError(err).Errorln("unable to decode response")
-			return err
 		}
 		fmt.Println(msgStr)
-		return nil
 	case messages.MessageType_MessageType_Success:
 		msgStr, err := skywallet.DecodeSuccessMsg(msg)
 		if err != nil {
 			logrus.WithError(err).Errorln("unable to decode response")
-			return err
 		}
 		fmt.Println(msgStr)
-		return nil
 	case messages.MessageType_MessageType_ResponseSkycoinSignMessage:
 		msgStr, err := skywallet.DecodeResponseSkycoinSignMessage(msg)
 		if err != nil {
 			logrus.WithError(err).Errorln("unable to decode response")
-			return err
 		}
 		fmt.Println(msgStr)
-		return nil
 	case messages.MessageType_MessageType_ResponseTransactionSign:
 		msgStr, err := skywallet.DecodeResponseTransactionSign(msg)
 		if err != nil {
 			logrus.WithError(err).Errorln("unable to decode response")
-			return err
 		}
 		fmt.Println(msgStr)
-		return nil
 	case messages.MessageType_MessageType_Features:
 		features := &messages.Features{}
 		if err = proto.Unmarshal(msg.Data, features); err != nil {
 			log.Error(err)
-			return err
 		}
 		enc := json.NewEncoder(os.Stdout)
 		if err = enc.Encode(features); err != nil {
 			log.Errorln(err)
-			return err
 		}
 		ff := skywallet.NewFirmwareFeatures(uint64(*features.FirmwareFeatures))
 		if err := ff.Unmarshal(); err != nil {
 			log.Errorln(err)
-			return err
 		}
 		log.Printf("\n\nFirmware features:\n%s", ff)
-		return nil
 	default:
 		logrus.Errorln("invalid state")
-		return errors.New("invalid state")
 	}
 }
