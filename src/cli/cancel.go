@@ -2,9 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-
 	gcli "github.com/urfave/cli"
 
 	skyWallet "github.com/fibercrypto/skywallet-go/src/skywallet"
@@ -25,32 +22,20 @@ func cancelCmd() gcli.Command {
 			},
 		},
 		Action: func(c *gcli.Context) {
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
 				return
 			}
-			defer device.Close()
-
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
-			msg, err := device.Cancel()
+			msg, err := sq.Cancel()
 			if err != nil {
 				log.Error(err)
 				return
 			}
-
 			responseMsg, err := skyWallet.DecodeSuccessOrFailMsg(msg)
 			if err != nil {
 				log.Error(err)
 				return
 			}
-
 			fmt.Println(responseMsg)
 		},
 	}

@@ -3,10 +3,6 @@ package cli
 import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
-	"os"
-	"runtime"
-
 	gcli "github.com/urfave/cli"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
@@ -42,24 +38,13 @@ func signMessageCmd() gcli.Command {
 		},
 		OnUsageError: onCommandUsageError(name),
 		Action: func(c *gcli.Context) {
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
-				return
-			}
-			defer device.Close()
-
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
 			addressIndex := c.Int("addressIndex")
 			message := c.String("message")
 			walletType := c.String("walletType")
-			sq := proxy.NewSequencer(device, false)
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
+				return
+			}
 			msg, err := sq.SignMessage(1, addressIndex, message, walletType)
 			if err != nil {
 				logrus.WithError(err).Errorln("unable to sign transaction")

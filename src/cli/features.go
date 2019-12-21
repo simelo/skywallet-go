@@ -3,12 +3,9 @@ package cli
 import (
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
-	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"github.com/micro/protobuf/proto"
-	"os"
-	"runtime"
-
 	gcli "github.com/urfave/cli"
+	"os"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
 
@@ -30,18 +27,10 @@ func featuresCmd() gcli.Command {
 			},
 		},
 		Action: func(c *gcli.Context) {
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
 				return
 			}
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-			sq := proxy.NewSequencer(device, false)
 			msg, err := sq.GetFeatures()
 			if err != nil {
 				logrus.WithError(err).Errorln("unable to get features")

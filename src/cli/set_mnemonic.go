@@ -3,10 +3,6 @@ package cli
 import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
-	"os"
-	"runtime"
-
 	messages "github.com/fibercrypto/skywallet-protob/go"
 
 	gcli "github.com/urfave/cli"
@@ -33,20 +29,11 @@ func setMnemonicCmd() gcli.Command {
 		},
 		OnUsageError: onCommandUsageError(name),
 		Action: func(c *gcli.Context) {
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
+			mnemonic := c.String("mnemonic")
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
 				return
 			}
-			defer device.Close()
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-			mnemonic := c.String("mnemonic")
-			sq := proxy.NewSequencer(device, false)
 			msg, err := sq.SetMnemonic(mnemonic)
 			if err != nil {
 				logrus.WithError(err).Errorln("unable to set mnemonic")

@@ -3,10 +3,6 @@ package cli
 import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
-	"os"
-	"runtime"
-
 	gcli "github.com/urfave/cli"
 
 	messages "github.com/fibercrypto/skywallet-protob/go"
@@ -45,23 +41,15 @@ func applySettingsCmd() gcli.Command {
 			passphrase := c.String("usePassphrase")
 			label := c.String("label")
 			language := c.String("language")
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
-				return
-			}
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
 			usePassphrase, _err := parseBool(passphrase)
 			if _err != nil {
 				log.Errorln("Valid values for usePassphrase are true or false")
 				return
 			}
-			sq := proxy.NewSequencer(device, false)
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
+				return
+			}
 			msg, err := sq.ApplySettings(usePassphrase, label, language)
 			if err != nil {
 				logrus.WithError(err).Errorln("unable to apply settings")

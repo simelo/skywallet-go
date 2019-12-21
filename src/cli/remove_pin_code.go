@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"runtime"
 
 	gcli "github.com/urfave/cli"
 
@@ -27,31 +25,21 @@ func removePinCode() gcli.Command {
 		},
 		OnUsageError: onCommandUsageError(name),
 		Action: func(c *gcli.Context) {
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
-				return
-			}
-			defer device.Close()
-
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
 			var pinEnc string
 			removePin := new(bool)
 			*removePin = true
-			msg, err := device.ChangePin(removePin)
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
+				return
+			}
+			msg, err := sq.ChangePin(removePin)
 			if err != nil {
 				log.Error(err)
 				return
 			}
 
 			if msg.Kind == uint16(messages.MessageType_MessageType_ButtonRequest) {
-				msg, err = device.ButtonAck()
+				msg, err = sq.ButtonAck()
 				if err != nil {
 					log.Error(err)
 					return
@@ -61,7 +49,7 @@ func removePinCode() gcli.Command {
 			for msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
 				fmt.Printf("PinMatrixRequest response: ")
 				fmt.Scanln(&pinEnc)
-				msg, err = device.PinMatrixAck(pinEnc)
+				msg, err = sq.PinMatrixAck(pinEnc)
 				if err != nil {
 					log.Error(err)
 					return

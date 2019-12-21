@@ -3,10 +3,6 @@ package cli
 import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
-	"os"
-	"runtime"
-
 	"github.com/gogo/protobuf/proto"
 
 	gcli "github.com/urfave/cli"
@@ -67,21 +63,6 @@ func transactionSignCmd() gcli.Command {
 			hours := c.Int64Slice("hour")
 			addressIndex := c.IntSlice("addressIndex")
 			walletType := c.String("walletType")
-
-			device := skyWallet.NewDevice(skyWallet.DeviceTypeFromString(c.String("deviceType")))
-			if device == nil {
-				return
-			}
-			defer device.Close()
-
-			if os.Getenv("AUTO_PRESS_BUTTONS") == "1" && device.Driver.DeviceType() == skyWallet.DeviceTypeEmulator && runtime.GOOS == "linux" {
-				err := device.SetAutoPressButton(true, skyWallet.ButtonRight)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-			}
-
 			if len(inputs) != len(inputIndex) {
 				fmt.Println("Every given input hash should have the an inputIndex")
 				return
@@ -90,7 +71,6 @@ func transactionSignCmd() gcli.Command {
 				fmt.Println("Every given output should have a coin and hour value")
 				return
 			}
-
 			var transactionInputs []*messages.SkycoinTransactionInput
 			var transactionOutputs []*messages.SkycoinTransactionOutput
 			for i, input := range inputs {
@@ -109,7 +89,10 @@ func transactionSignCmd() gcli.Command {
 				}
 				transactionOutputs = append(transactionOutputs, &transactionOutput)
 			}
-			sq := proxy.NewSequencer(device, false)
+			sq, err := createDevice(c.String("deviceType"))
+			if err != nil {
+				return
+			}
 			msg, err := sq.TransactionSign(transactionInputs, transactionOutputs, walletType)
 			if err != nil {
 				logrus.WithError(err).Errorln("unable to sign transaction")
