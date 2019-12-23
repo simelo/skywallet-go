@@ -3,6 +3,7 @@ package proxy //nolint goimports
 import (
 	"errors"
 	"fmt"
+	"github.com/micro/protobuf/proto"
 	"io/ioutil"
 	"sync"
 
@@ -61,15 +62,33 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 		}
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
-		sq.log.Println("PinMatrixRequest request:")
-		pinEnc := sq.scan()
-		msg, err = sq.dev.PinMatrixAck(pinEnc)
-		msgStr, err := handleResponse(msg, err)
-		if err != nil {
-			sq.log.WithError(err).Errorln("pin matrixAck ack: sending message failed")
-			return msg, err
+		pmr := &messages.PinMatrixRequest{}
+		if err = proto.Unmarshal(msg.Data, pmr); err != nil {
+			sq.log.WithError(err).Errorln("unable to decode PinMatrixRequest")
+			return wire.Message{}, err
 		}
-		sq.logCli.Infof("PinMatrixAck response:", msgStr)
+		if pmr.Type == nil {
+			sq.log.Errorln("pmr.Type should not be null")
+			return wire.Message{}, errors.New("unexpected null object")
+		}
+		switch *pmr.Type {
+		case messages.PinMatrixRequestType_PinMatrixRequestType_Current:
+			sq.log.Infoln("enter current pin:")
+		case messages.PinMatrixRequestType_PinMatrixRequestType_NewFirst:
+			sq.log.Infoln("enter new pin:")
+		case messages.PinMatrixRequestType_PinMatrixRequestType_NewSecond:
+			sq.log.Infoln("confirm new pin:")
+		default:
+			errStr := "unexpected PinMatrixRequestType"
+			sq.log.WithField("type", *pmr.Type).Errorln(errStr)
+			return wire.Message{}, errors.New(errStr)
+		}
+		pinEnc := sq.scan()
+		if msg, err = sq.dev.PinMatrixAck(pinEnc); err != nil {
+			sq.log.WithError(err).Errorln("pin matrixAck ack: sending message failed")
+			return wire.Message{}, err
+		}
+		return sq.handleInputInteraction(msg)
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
 		sq.log.Println("PassphraseRequest request:")
 		passphrase := sq.scan()
