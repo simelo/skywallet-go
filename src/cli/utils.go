@@ -9,7 +9,7 @@ import (
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"github.com/fibercrypto/skywallet-go/src/skywallet/wire"
 	messages "github.com/fibercrypto/skywallet-protob/go"
-	"github.com/micro/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"os"
 	"runtime"
 )
