@@ -41,7 +41,11 @@ func createDevice(devType string) (skywallet.Devicer, error) {
 			return nil, err
 		}
 	}
-	return proxy.NewSequencer(device, false), nil
+	return proxy.NewSequencer(device, false, func() string{
+		var line string
+		fmt.Scanln(&line)
+		return line
+	}), nil
 }
 
 func handleFinalResponse(msg wire.Message, err error, errMsg string, expectedMsgKind messages.MessageType) {

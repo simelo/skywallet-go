@@ -19,14 +19,16 @@ type Sequencer struct {
 	log *logging.MasterLogger
 	logCli *logging.MasterLogger
 	dev skywallet.Devicer
+	scan func()string
 }
 
 // NewSequencer create a new sequencer instance
-func NewSequencer(dev skywallet.Devicer, cliSpeechless bool) skywallet.Devicer {
+func NewSequencer(dev skywallet.Devicer, cliSpeechless bool, scanner func()string) skywallet.Devicer {
 	sq := &Sequencer{
 		log: logging.NewMasterLogger(),
 		logCli: logging.NewMasterLogger(),
 		dev: dev,
+		scan: scanner,
 	}
 	if cliSpeechless {
 		sq.logCli.Out = ioutil.Discard
@@ -60,9 +62,7 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 	}
 	if msg.Kind == uint16(messages.MessageType_MessageType_PinMatrixRequest) {
 		sq.log.Println("PinMatrixRequest request:")
-		// FIXME use a reader from sq
-		// fmt.Scanln(&pinEnc)
-		var pinEnc string
+		pinEnc := sq.scan()
 		msg, err = sq.dev.PinMatrixAck(pinEnc)
 		msgStr, err := handleResponse(msg, err)
 		if err != nil {
@@ -71,10 +71,8 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 		}
 		sq.logCli.Infof("PinMatrixAck response:", msgStr)
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_PassphraseRequest) {
-		var passphrase string
 		sq.log.Println("PassphraseRequest request:")
-		// FIXME use a reader from sq
-		//fmt.Scanln(&passphrase)
+		passphrase := sq.scan()
 		msg, err = sq.dev.PassphraseAck(passphrase)
 		msgStr, err := handleResponse(msg, err)
 		if err != nil {
@@ -83,10 +81,8 @@ func (sq *Sequencer) handleInputInteraction(msg wire.Message) (wire.Message, err
 		}
 		sq.logCli.Infof("PassphraseAck response:", msgStr)
 	} else if msg.Kind == uint16(messages.MessageType_MessageType_WordRequest) {
-		var word string
 		fmt.Printf("Word: ")
-		// FIXME use a reader from sq
-		fmt.Scanln(&word)
+		word := sq.scan()
 		if msg, err = sq.dev.WordAck(word); err != nil {
 			sq.log.WithError(err).Errorln("word ack: sending message failed")
 			return msg, err
