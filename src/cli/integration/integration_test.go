@@ -653,7 +653,7 @@ func TestSetPinCode(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, cmd.Start())
 
-	var fail = false
+	var fail1, fail2 = false, false
 	var stdInDone = false
 
 	go func() {
@@ -670,7 +670,7 @@ func TestSetPinCode(t *testing.T) {
 				stdInDone = true
 			} else if stdInDone {
 				if m == "mismatch" {
-					fail = true
+					fail1 = true
 					break
 				}
 			}
@@ -683,14 +683,14 @@ func TestSetPinCode(t *testing.T) {
 		for scanner.Scan() {
 			log.Errorln(scanner.Text())
 			if len(scanner.Text()) > 0 {
-				fail = true
+				fail2 = true
 			}
 		}
 	}()
 
 	err = cmd.Wait()
 	require.NoError(t, err)
-	require.True(t, fail)
+	require.True(t, fail1 || fail2)
 }
 
 func TestRemovePinCode(t *testing.T) {
