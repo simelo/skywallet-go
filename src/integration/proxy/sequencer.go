@@ -3,7 +3,7 @@ package proxy //nolint goimports
 import (
 	"errors"
 	"fmt"
-	"github.com/micro/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"io/ioutil"
 	"sync"
 
