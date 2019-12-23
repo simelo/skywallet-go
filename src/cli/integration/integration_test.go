@@ -662,8 +662,8 @@ func TestSetPinCode(t *testing.T) {
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
 			m := scanner.Text()
-			if m == "response:" {
-				time.Sleep(1 * time.Second)
+			if m == "pin:" {
+				time.Sleep(time.Second)
 				_, err := stdInPipe.Write([]byte("123\n"))
 				require.NoError(t, err)
 
@@ -682,6 +682,9 @@ func TestSetPinCode(t *testing.T) {
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
 			log.Errorln(scanner.Text())
+			if len(scanner.Text()) > 0 {
+				fail = true
+			}
 		}
 	}()
 
