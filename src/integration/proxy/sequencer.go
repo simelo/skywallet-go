@@ -205,7 +205,7 @@ func (sq *Sequencer) CheckMessageSignature(message, signature, address string) (
 func (sq *Sequencer) ChangePin(removePin *bool) (wire.Message, error) {
 	sq.Lock()
 	defer sq.Unlock()
-	msg, err := sq.dev.ChangePin(new(bool))
+	msg, err := sq.dev.ChangePin(removePin)
 	msg, err = sq.handleFirstCommandResponse(messages.MessageType_MessageType_Success, "change pin", err, msg)
 	if err != nil {
 		return wire.Message{}, err
