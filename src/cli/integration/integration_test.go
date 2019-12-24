@@ -653,7 +653,7 @@ func TestSetPinCode(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, cmd.Start())
 
-	var fail = false
+	var fail1, fail2 = false, false
 	var stdInDone = false
 
 	go func() {
@@ -662,15 +662,15 @@ func TestSetPinCode(t *testing.T) {
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
 			m := scanner.Text()
-			if m == "response:" {
-				time.Sleep(1 * time.Second)
+			if m == "pin:" {
+				time.Sleep(time.Second)
 				_, err := stdInPipe.Write([]byte("123\n"))
 				require.NoError(t, err)
 
 				stdInDone = true
 			} else if stdInDone {
 				if m == "mismatch" {
-					fail = true
+					fail1 = true
 					break
 				}
 			}
@@ -682,12 +682,15 @@ func TestSetPinCode(t *testing.T) {
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
 			log.Errorln(scanner.Text())
+			if len(scanner.Text()) > 0 {
+				fail2 = true
+			}
 		}
 	}()
 
 	err = cmd.Wait()
 	require.NoError(t, err)
-	require.True(t, fail)
+	require.True(t, fail1 || fail2)
 }
 
 func TestRemovePinCode(t *testing.T) {
