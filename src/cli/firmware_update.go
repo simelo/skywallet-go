@@ -3,6 +3,7 @@ package cli
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/fibercrypto/skywallet-go/src/skywallet"
 	"io/ioutil"
 
 	gcli "github.com/urfave/cli"
@@ -29,7 +30,7 @@ func firmwareUpdate() gcli.Command {
 				panic(err)
 			}
 			fmt.Printf("Hash: %x\n", sha256.Sum256(firmware[0x100:]))
-			sq, err := createDevice(c.String("deviceType"))
+			sq, err := createDevice(skywallet.DeviceTypeUSB.String())
 			if err != nil {
 				return
 			}
