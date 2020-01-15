@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fibercrypto/fibercryptowallet/src/util/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/fibercrypto/skywallet-go/src/integration/proxy"
 	"github.com/fibercrypto/skywallet-go/src/skywallet"
@@ -41,10 +42,14 @@ func createDevice(devType string) (skywallet.Devicer, error) {
 			return nil, err
 		}
 	}
-	return proxy.NewSequencer(device, false, func() string{
-		var line string
-		fmt.Scanln(&line)
-		return line
+	return proxy.NewSequencer(device, false, func(kind skywallet.InputRequestKind, title, message string) (string, error) {
+		if kind != skywallet.RequestJustInformingUser {
+			logging.NewMasterLogger().Printf(title)
+			var line string
+			fmt.Scanln(&line)
+			return line, nil
+		}
+		return "", nil
 	}), nil
 }
 
