@@ -43,7 +43,7 @@ func createDevice(devType string) (skywallet.Devicer, error) {
 		}
 	}
 	return proxy.NewSequencer(device, false, func(kind skywallet.InputRequestKind, title, message string) (string, error) {
-		if kind != skywallet.RequestJustInformingUser {
+		if kind != skywallet.RequestInformUserOnlyOk && kind != skywallet.RequestInformUserOnlyCancel && kind != skywallet.RequestInformUserOkAndCancel {
 			logging.NewMasterLogger().Printf(title)
 			var line string
 			fmt.Scanln(&line)
