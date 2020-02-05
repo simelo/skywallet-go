@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Change `protobuf` file definitions from http://github.com/skycoin/hardware-wallet-protob.git to http://github.com/fibercrypto/skywallet-go.git
+- Be able to set the emulator ip as argument.
 
 ### Removed
 
