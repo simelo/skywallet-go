@@ -46,8 +46,8 @@ var (
 	ErrDeviceTypeEmulator = errors.New("device type cannot be emulator")
 	// ErrInvalidWordCount is returned if word count is not valid mnemonic word length
 	ErrInvalidWordCount = errors.New("word count must be 12 or 24")
-	// WrrInvalidArgCountForEmulatorIpAddress emulator ip address is the only one expected argument for emulatorAddress
-	WrrInvalidArgCountForEmulatorIpAddress = errors.New("emulator ip address is the only one expected argument for emulatorAddress")
+	// ErrInvalidArgCountForEmulatorIpAddress emulator ip address is the only one expected argument for emulatorAddress
+	ErrInvalidArgCountForEmulatorIpAddress = errors.New("emulator ip address is the only one expected argument for emulatorAddress")
 	// ErrNoDeviceConnected is returned if no device is connected to the system
 	ErrNoDeviceConnected = errors.New("no device connected")
 	// ErrInvalidWalletType a valid wallet type should  be specified
