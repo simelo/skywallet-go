@@ -190,7 +190,7 @@ func (suite *devicerSuit) TestFirmwareUpload() {
 
 	for _, tc := range tt {
 		driverMock.On("DeviceType").Return(tc.deviceType)
-		err := device.FirmwareUpload([]byte{}, [32]byte{})
+		_, err := device.UploadFirmware([]byte{}, [32]byte{})
 		suite.Equal(err, tc.err)
 	}
 

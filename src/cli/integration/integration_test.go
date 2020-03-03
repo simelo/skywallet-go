@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -532,7 +533,10 @@ func TestRecovery(t *testing.T) {
 	var fail = false
 	var stdInDone = false
 
+	wg := sync.WaitGroup{}
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		scanner := bufio.NewScanner(stdoutPipe)
 
 		scanner.Split(bufio.ScanWords)
@@ -545,7 +549,7 @@ func TestRecovery(t *testing.T) {
 
 				stdInDone = true
 			} else if stdInDone {
-				if m == "Wrong" || m == "Word" {
+				if m == "Wrong" || m == "word" {
 					fail = true
 					break
 				}
@@ -554,14 +558,20 @@ func TestRecovery(t *testing.T) {
 	}()
 
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		scanner := bufio.NewScanner(stderrPipe)
 		scanner.Split(bufio.ScanWords)
 		for scanner.Scan() {
-			log.Errorln(scanner.Text())
+			m := scanner.Text()
+			if m == "Wrong" || m == "word" || m == `error="Word` {
+				fail = true
+				break
+			}
 		}
 	}()
-
 	err = cmd.Wait()
+	wg.Wait()
 	require.NoError(t, err)
 	require.True(t, fail)
 }

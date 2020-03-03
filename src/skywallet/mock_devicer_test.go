@@ -11,20 +11,20 @@ type MockDevicer struct {
 	mock.Mock
 }
 
-// AddressGen provides a mock function with given fields: addressN, startIndex, confirmAddress
-func (_m *MockDevicer) AddressGen(addressN uint32, startIndex uint32, confirmAddress bool) (wire.Message, error) {
-	ret := _m.Called(addressN, startIndex, confirmAddress)
+// AddressGen provides a mock function with given fields: addressN, startIndex, confirmAddress, walletType
+func (_m *MockDevicer) AddressGen(addressN uint32, startIndex uint32, confirmAddress bool, walletType string) (wire.Message, error) {
+	ret := _m.Called(addressN, startIndex, confirmAddress, walletType)
 
 	var r0 wire.Message
-	if rf, ok := ret.Get(0).(func(uint32, uint32, bool) wire.Message); ok {
-		r0 = rf(addressN, startIndex, confirmAddress)
+	if rf, ok := ret.Get(0).(func(uint32, uint32, bool, string) wire.Message); ok {
+		r0 = rf(addressN, startIndex, confirmAddress, walletType)
 	} else {
 		r0 = ret.Get(0).(wire.Message)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(uint32, uint32, bool) error); ok {
-		r1 = rf(addressN, startIndex, confirmAddress)
+	if rf, ok := ret.Get(1).(func(uint32, uint32, bool, string) error); ok {
+		r1 = rf(addressN, startIndex, confirmAddress, walletType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -177,6 +177,20 @@ func (_m *MockDevicer) Close() {
 	_m.Called()
 }
 
+// Connect provides a mock function with given fields:
+func (_m *MockDevicer) Connect() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Connected provides a mock function with given fields:
 func (_m *MockDevicer) Connected() bool {
 	ret := _m.Called()
@@ -191,18 +205,39 @@ func (_m *MockDevicer) Connected() bool {
 	return r0
 }
 
-// FirmwareUpload provides a mock function with given fields: payload, hash
-func (_m *MockDevicer) FirmwareUpload(payload []byte, hash [32]byte) error {
-	ret := _m.Called(payload, hash)
+// Disconnect provides a mock function with given fields:
+func (_m *MockDevicer) Disconnect() error {
+	ret := _m.Called()
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]byte, [32]byte) error); ok {
-		r0 = rf(payload, hash)
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
 	}
 
 	return r0
+}
+
+// EraseFirmware provides a mock function with given fields: length
+func (_m *MockDevicer) EraseFirmware(length uint32) (wire.Message, error) {
+	ret := _m.Called(length)
+
+	var r0 wire.Message
+	if rf, ok := ret.Get(0).(func(uint32) wire.Message); ok {
+		r0 = rf(length)
+	} else {
+		r0 = ret.Get(0).(wire.Message)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(uint32) error); ok {
+		r1 = rf(length)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GenerateMnemonic provides a mock function with given fields: wordCount, usePassphrase
@@ -290,18 +325,18 @@ func (_m *MockDevicer) PinMatrixAck(p string) (wire.Message, error) {
 }
 
 // Recovery provides a mock function with given fields: wordCount, usePassphrase, dryRun
-func (_m *MockDevicer) Recovery(wordCount uint32, usePassphrase bool, dryRun bool) (wire.Message, error) {
+func (_m *MockDevicer) Recovery(wordCount uint32, usePassphrase *bool, dryRun bool) (wire.Message, error) {
 	ret := _m.Called(wordCount, usePassphrase, dryRun)
 
 	var r0 wire.Message
-	if rf, ok := ret.Get(0).(func(uint32, bool, bool) wire.Message); ok {
+	if rf, ok := ret.Get(0).(func(uint32, *bool, bool) wire.Message); ok {
 		r0 = rf(wordCount, usePassphrase, dryRun)
 	} else {
 		r0 = ret.Get(0).(wire.Message)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(uint32, bool, bool) error); ok {
+	if rf, ok := ret.Get(1).(func(uint32, *bool, bool) error); ok {
 		r1 = rf(wordCount, usePassphrase, dryRun)
 	} else {
 		r1 = ret.Error(1)
@@ -345,20 +380,20 @@ func (_m *MockDevicer) SetMnemonic(mnemonic string) (wire.Message, error) {
 	return r0, r1
 }
 
-// SignMessage provides a mock function with given fields: addressIndex, message
-func (_m *MockDevicer) SignMessage(addressIndex int, message string) (wire.Message, error) {
-	ret := _m.Called(addressIndex, message)
+// SignMessage provides a mock function with given fields: addressN, addressIndex, message, walletType
+func (_m *MockDevicer) SignMessage(addressN int, addressIndex int, message string, walletType string) (wire.Message, error) {
+	ret := _m.Called(addressN, addressIndex, message, walletType)
 
 	var r0 wire.Message
-	if rf, ok := ret.Get(0).(func(int, string) wire.Message); ok {
-		r0 = rf(addressIndex, message)
+	if rf, ok := ret.Get(0).(func(int, int, string, string) wire.Message); ok {
+		r0 = rf(addressN, addressIndex, message, walletType)
 	} else {
 		r0 = ret.Get(0).(wire.Message)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(int, string) error); ok {
-		r1 = rf(addressIndex, message)
+	if rf, ok := ret.Get(1).(func(int, int, string, string) error); ok {
+		r1 = rf(addressN, addressIndex, message, walletType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -366,20 +401,41 @@ func (_m *MockDevicer) SignMessage(addressIndex int, message string) (wire.Messa
 	return r0, r1
 }
 
-// TransactionSign provides a mock function with given fields: inputs, outputs
-func (_m *MockDevicer) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput) (wire.Message, error) {
-	ret := _m.Called(inputs, outputs)
+// TransactionSign provides a mock function with given fields: inputs, outputs, walletType
+func (_m *MockDevicer) TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, walletType string) (wire.Message, error) {
+	ret := _m.Called(inputs, outputs, walletType)
 
 	var r0 wire.Message
-	if rf, ok := ret.Get(0).(func([]*messages.SkycoinTransactionInput, []*messages.SkycoinTransactionOutput) wire.Message); ok {
-		r0 = rf(inputs, outputs)
+	if rf, ok := ret.Get(0).(func([]*messages.SkycoinTransactionInput, []*messages.SkycoinTransactionOutput, string) wire.Message); ok {
+		r0 = rf(inputs, outputs, walletType)
 	} else {
 		r0 = ret.Get(0).(wire.Message)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]*messages.SkycoinTransactionInput, []*messages.SkycoinTransactionOutput) error); ok {
-		r1 = rf(inputs, outputs)
+	if rf, ok := ret.Get(1).(func([]*messages.SkycoinTransactionInput, []*messages.SkycoinTransactionOutput, string) error); ok {
+		r1 = rf(inputs, outputs, walletType)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UploadFirmware provides a mock function with given fields: payload, hash
+func (_m *MockDevicer) UploadFirmware(payload []byte, hash [32]byte) (wire.Message, error) {
+	ret := _m.Called(payload, hash)
+
+	var r0 wire.Message
+	if rf, ok := ret.Get(0).(func([]byte, [32]byte) wire.Message); ok {
+		r0 = rf(payload, hash)
+	} else {
+		r0 = ret.Get(0).(wire.Message)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte, [32]byte) error); ok {
+		r1 = rf(payload, hash)
 	} else {
 		r1 = ret.Error(1)
 	}
