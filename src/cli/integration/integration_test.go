@@ -534,8 +534,8 @@ func TestRecovery(t *testing.T) {
 	var stdInDone = false
 
 	wg := sync.WaitGroup{}
+	wg.Add(2)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		scanner := bufio.NewScanner(stdoutPipe)
 
@@ -558,7 +558,6 @@ func TestRecovery(t *testing.T) {
 	}()
 
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		scanner := bufio.NewScanner(stderrPipe)
 		scanner.Split(bufio.ScanWords)

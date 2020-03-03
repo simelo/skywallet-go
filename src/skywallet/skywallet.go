@@ -46,16 +46,16 @@ var (
 	ErrDeviceTypeEmulator = errors.New("device type cannot be emulator")
 	// ErrInvalidWordCount is returned if word count is not valid mnemonic word length
 	ErrInvalidWordCount = errors.New("word count must be 12 or 24")
-	// ErrInvalidArgCountForEmulatorIpAddress emulator ip address is the only one expected argument for emulatorAddress
-	ErrInvalidArgCountForEmulatorIpAddress = errors.New("emulator ip address is the only one expected argument for emulatorAddress")
+	// ErrInvalidArgCountForEmulatorIPAddress emulator ip address is the only one expected argument for emulatorAddress
+	ErrInvalidArgCountForEmulatorIPAddress = errors.New("emulator ip address is the only one expected argument for emulatorAddress")
 	// ErrNoDeviceConnected is returned if no device is connected to the system
 	ErrNoDeviceConnected = errors.New("no device connected")
 	// ErrInvalidWalletType a valid wallet type should  be specified
 	ErrInvalidWalletType = errors.New("invalid wallet type, options are: " + WalletTypeDeterministic + " or " + WalletTypeBip44)
-	// ErrUserCancelledWithDeviceButton the requested operation has been cancelled from the device input button
-	ErrUserCancelledWithDeviceButton = errors.New("the requested operation has been cancelled from the device input button")
-	// ErrUserCancelledFromInputReader the requested operation has been cancelled from the device input button
-	ErrUserCancelledFromInputReader = errors.New("the requested operation has been cancelled from the user interaction")
+	// ErrUserCancelledWithDeviceButton the requested operation has been canceled from the device input button
+	ErrUserCancelledWithDeviceButton = errors.New("the requested operation has been canceled from the device input button")
+	// ErrUserCancelledFromInputReader the requested operation has been canceled from the device input button
+	ErrUserCancelledFromInputReader = errors.New("the requested operation has been canceled from the user interaction")
 )
 
 const (
@@ -70,13 +70,20 @@ const (
 	firstHardenedChild = uint32(0x80000000)
 )
 
+// InputRequestKind specify the input required for the reader
 type InputRequestKind uint32
 const (
+	// RequestKindPinMatrix require an input reader for a matrix
 	RequestKindPinMatrix InputRequestKind = iota
+	// RequestKindPassphrase require an input reader for a pass phrase
 	RequestKindPassphrase
+	// RequestKindWord require an input reader for a word
 	RequestKindWord
+	// RequestInformUserOnlyOk no special input, just accept
 	RequestInformUserOnlyOk
+	// RequestInformUserOnlyCancel just cancel if required
 	RequestInformUserOnlyCancel
+	// RequestInformUserOkAndCancel use ok or cancel inpt reader as required
 	RequestInformUserOkAndCancel
 )
 
@@ -84,19 +91,33 @@ const (
 
 // Devicer provides api for the hw wallet functions
 type Devicer interface {
+	// AddressGen generate addresses
 	AddressGen(addressN, startIndex uint32, confirmAddress bool, walletType string) (wire.Message, error)
+	// ApplySettings to the device
 	ApplySettings(usePassphrase *bool, label string, language string) (wire.Message, error)
+	// Backup create a seed backup
 	Backup() (wire.Message, error)
+	// Cancel cancel current operation
 	Cancel() (wire.Message, error)
+	// CheckMessageSignature check if a message signature is valid
 	CheckMessageSignature(message, signature, address string) (wire.Message, error)
+	// ChangePin change device PIN
 	ChangePin(removePin *bool) (wire.Message, error)
+	// Connected check if the is a device connected
 	Connected() bool
+	// Available check if the device is reachable
 	Available() bool
+	// EraseFirmware erase device firmware (bootloader mode).
 	EraseFirmware(length uint32) (wire.Message, error)
+	// UploadFirmware upload a new firmware (bootloader mode).
 	UploadFirmware(payload []byte, hash [32]byte) (wire.Message, error)
+	// GetFeatures return the device features
 	GetFeatures() (wire.Message, error)
+	// GenerateMnemonic generate a mnemonic
 	GenerateMnemonic(wordCount uint32, usePassphrase bool) (wire.Message, error)
+	// Recovery a device mnemonic
 	Recovery(wordCount uint32, usePassphrase *bool, dryRun bool) (wire.Message, error)
+	// SetMnemonic sets a specific mnemonic
 	SetMnemonic(mnemonic string) (wire.Message, error)
 	TransactionSign(inputs []*messages.SkycoinTransactionInput, outputs []*messages.SkycoinTransactionOutput, walletType string) (wire.Message, error)
 	SignMessage(addressN, addressIndex int, message string, walletType string) (wire.Message, error)
@@ -596,6 +617,7 @@ func (d *Device) Available() bool {
 	return true
 }
 
+// EraseFirmware erase current firmware
 func (d *Device) EraseFirmware(length uint32) (wire.Message, error) {
 	if d.Driver.DeviceType() != DeviceTypeUSB {
 		return wire.Message{}, ErrDeviceTypeEmulator
@@ -614,6 +636,7 @@ func (d *Device) EraseFirmware(length uint32) (wire.Message, error) {
 	return d.Driver.SendToDevice(d.dev, eraseFirmwareChunks)
 }
 
+// UploadFirmware upload a new firmware
 func (d *Device) UploadFirmware(payload []byte, hash [32]byte) (wire.Message, error) {
 	if d.Driver.DeviceType() != DeviceTypeUSB {
 		return wire.Message{}, ErrDeviceTypeEmulator

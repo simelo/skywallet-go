@@ -22,18 +22,26 @@ type Sequencer struct {
 	scan func(requestKind skywallet.InputRequestKind, title, message string) (string, error)
 }
 
-// ActionCancelableFrom is used for masking options, for example:
+// ActionConfirmFrom is used for masking options, for example:
 // 00000000 ActionConfirmNone
 // 00000001 ActionConfirmOkFromDevButton
 // 00000010 ActionConfirmCancelFromDevButton
 type ActionConfirmFrom uint8
+// ActionConfirmNone no thing to confirm
 var ActionConfirmNone ActionConfirmFrom = 0x0
+// ActionConfirmOkFromDevButton confirm in the device
 var ActionConfirmOkFromDevButton ActionConfirmFrom = 0x1
+// ActionConfirmCancelFromDevButton cancel from the device
 var ActionConfirmCancelFromDevButton ActionConfirmFrom = 0x2
+// ActionConfirmOkAndCancelFromDevButton ok and/or cancel from the device
 var ActionConfirmOkAndCancelFromDevButton ActionConfirmFrom = 0x4
+// ActionConfirmOkFromWireProtocol confirm ok though wire
 var ActionConfirmOkFromWireProtocol ActionConfirmFrom = 0x8
+// ActionConfirmCancelFromWireProtocol confirm cancel though wire
 var ActionConfirmCancelFromWireProtocol ActionConfirmFrom = 0x16
+// ActionConfirmOkAndCancelFromWireProtocol confirm ok and/or cancel though wire
 var ActionConfirmOkAndCancelFromWireProtocol ActionConfirmFrom = 0x32
+// ActionWordRequest a word was request
 var ActionWordRequest ActionConfirmFrom = 0x64
 
 // mixActionConfirmFrom create a merged value from all the masks
@@ -88,7 +96,7 @@ func (sq *Sequencer) handleInputReaderResponse(err error) error {
 	return err
 }
 
-func (sq *Sequencer) handleInputReaderCanceled(err error) error {
+func (sq *Sequencer) handleInputReaderCanceled(_ error) error {
 	msg, err := sq.dev.Cancel()
 	if err != nil {
 		sq.log.WithError(err).Errorln("unable to cancel command")
