@@ -19,6 +19,14 @@
 
 [[projects]]
   branch = "develop"
+  digest = "1:356fe65b69f7659a525ee6b412552323b79dabebafa628b8a62177a30ec602b2"
+  name = "github.com/fibercrypto/fibercryptowallet"
+  packages = ["src/util/logging"]
+  pruneopts = "UT"
+  revision = "2b2a113b0a824b1cc077d46a0fba45bf2bdf9929"
+
+[[projects]]
+  branch = "develop"
   digest = "1:ec1a1f7bbfba1362708324d1b7aff4153086c837cdfe13eabd241a4cc9bac44d"
   name = "github.com/fibercrypto/skywallet-protob"
   packages = [
@@ -26,7 +34,7 @@
     "go/google/protobuf",
   ]
   pruneopts = "UT"
-  revision = "8ce918b0c1c3d7e3d315ee19e2d097ea4ee78838"
+  revision = "81be0e9029a26fadc841a14e84bd8a822b2dd8b5"
 
 [[projects]]
   digest = "1:4caab6f14c6b9654ccb7d398791d1f71a2d4e693ea508d29659a173e1b2e644a"
@@ -45,20 +53,20 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:4a29eeb25603debe8f2098a9902c4d3851034cf70d33be428826e86e8c30a1b0"
+  digest = "1:0109cf4321a15313ec895f42e723e1f76121c6975ea006abfa20012272ec0937"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   pruneopts = "UT"
-  revision = "98ec13f34aabf44cc914c65a1cfb7b9bc815aef1"
-  version = "v0.1.4"
+  revision = "68e95eba382c972aafde02ead2cd2426a8a92480"
+  version = "v0.1.6"
 
 [[projects]]
-  digest = "1:d62282425ffb75047679d7e2c3b980eea7f82c05ef5fb9142ee617ebac6e7432"
+  digest = "1:0c58d31abe2a2ccb429c559b6292e7df89dcda675456fecc282fa90aa08273eb"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "88ba11cfdc67c7588b30042edf244b2875f892b6"
-  version = "v0.0.10"
+  revision = "7b513a986450394f7bbf1476909911b3aa3a55ce"
+  version = "v0.0.12"
 
 [[projects]]
   branch = "master"
@@ -108,15 +116,15 @@
   revision = "d7e4b2f3e31ea96bdcaba595507fde42baa156b9"
 
 [[projects]]
-  digest = "1:ac83cf90d08b63ad5f7e020ef480d319ae890c208f8524622a2f3136e2686b02"
+  digest = "1:23472f69a3ee7225de2f104aa48c6456959d1c155e45035c9845806d83109190"
   name = "github.com/stretchr/objx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
-  version = "v0.1.1"
+  revision = "ea4fe68685ee0d3cee7032121851b57e7494e8ea"
+  version = "v0.2.0"
 
 [[projects]]
-  digest = "1:d88ba57c4e8f5db6ce9ab6605a89f4542ee751b576884ba5271c2ba3d4b6f2d2"
+  digest = "1:1b3920faaa29ea6add235ee4da085076cf058982c7f3830f9c89453588ae9f1f"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -125,8 +133,8 @@
     "suite",
   ]
   pruneopts = "UT"
-  revision = "221dbe5ed46703ee255b1da0dec05086f5035f62"
-  version = "v1.4.0"
+  revision = "3ebf1ddaeb260c4b1ae502a01c7844fa8c1fa0e9"
+  version = "v1.5.1"
 
 [[projects]]
   digest = "1:1d3ef3dd057d2eb1819e945f88cc83835296c9b7fb13ad3194c937c4e2891fee"
@@ -138,37 +146,40 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bbe51412d9915d64ffaa96b51d409e070665efc5194fcf145c4a27d4133107a4"
+  digest = "1:ad2bf20798504fbde0c5bdf5ee83d3354fb101d32c5b2267f811c1958b91b0ab"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "e1110fd1c708ef015366ea01799a23c459593c47"
+  revision = "78000ba7a073cafc0278790f6bce552a0f25850e"
 
 [[projects]]
   branch = "master"
-  digest = "1:a8d09768b9b35851f498a4ba24ef08b7a72aa29bdb1673324394443e076bb440"
+  digest = "1:e32edd8d81fe0447cb6855e2d2b0549b63717539513e09b3a1e4bb20d48f46c6"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "4c7a9d0fe056d9d1de37e1409ca8a5c17accb46a"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
-  digest = "1:f26a5d382387e03a40d1471dddfba85dfff9bf05352d7e42d37612677c4d3c5c"
+  digest = "1:55b110c99c5fdc4f14930747326acce56b52cfce60b24b1c03ef686ac0e46bb1"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f90ceb4f409096b60e2e9076b38b304b8246e5fa"
-  version = "v2.2.5"
+  revision = "53403b58ad1b561927d19068c655246f2db79d48"
+  version = "v2.2.8"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/fibercrypto/fibercryptowallet/src/util/logging",
     "github.com/fibercrypto/skywallet-protob/go",
     "github.com/gogo/protobuf/proto",
+    "github.com/russross/blackfriday",
+    "github.com/sirupsen/logrus",
     "github.com/skycoin/skycoin/src/cipher",
     "github.com/skycoin/skycoin/src/util/logging",
     "github.com/stretchr/testify/mock",

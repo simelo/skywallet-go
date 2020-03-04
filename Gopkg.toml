@@ -40,3 +40,7 @@
 [[constraint]]
   branch = "develop"
   name = "github.com/fibercrypto/skywallet-protob"
+
+[[constraint]]
+  name = "github.com/russross/blackfriday"
+  version = "1.5.2"
